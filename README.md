@@ -4,6 +4,10 @@
 [![Build Status](https://travis-ci.org/LLK/scratch-vm.svg?branch=develop)](https://travis-ci.org/LLK/scratch-vm)
 [![Coverage Status](https://coveralls.io/repos/github/LLK/scratch-vm/badge.svg?branch=develop)](https://coveralls.io/github/LLK/scratch-vm?branch=develop)
 
+## Debugger
+Deze repository bevat de code van de aangepaste Scratch Virtual Machine, die extra debug-functionaliteiten toevoegt. Deze
+wordt gebruikt in de [`scratch-debugger-gui`](https://github.ugent.be/scratch4d/scratch-debugger-gui).
+
 ## Installation
 This requires you to have Git and Node.js installed.
 
