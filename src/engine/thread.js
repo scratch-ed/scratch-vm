@@ -69,7 +69,6 @@ class _StackFrame {
      * @return {_StackFrame} this
      */
     reset () {
-
         this.isLoop = false;
         this.warpMode = false;
         this.justReported = null;

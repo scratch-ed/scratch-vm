@@ -53,6 +53,17 @@ class Sequencer {
         this.runtime = runtime;
 
         this.activeThread = null;
+
+        // DEBUGGER VARIABLES
+        this.debugMode = false;
+        this.breakpoints = new Set();
+
+        this.firstBlock = true;
+        this.blocksSinceLastBreakpoint = 0;
+
+        this.runtime.on('PROJECT_STOP_ALL', () => {
+            this.firstBlock = true;
+        });
     }
 
     /**
@@ -81,6 +92,8 @@ class Sequencer {
         // Whether `stepThreads` has run through a full single tick.
         let ranFirstTick = false;
         const doneThreads = [];
+
+        let breakPointEncountered = false;
         // Conditions for continuing to stepping threads:
         // 1. We must have threads in the list, and some must be active.
         // 2. Time elapsed must be less than WORK_TIME.
@@ -125,7 +138,13 @@ class Sequencer {
                         // Increment the number of times stepThread is called.
                         this.runtime.profiler.increment(stepThreadProfilerId);
                     }
-                    this.stepThread(activeThread);
+
+                    if (this.stepThread(activeThread)) {
+                        breakPointEncountered = true;
+                        console.log('BREAKPOINT');
+                        break;
+                    }
+
                     activeThread.warpTimer = null;
                     if (activeThread.isKilled) {
                         i--; // if the thread is removed from the list (killed), do not increase index
@@ -165,6 +184,10 @@ class Sequencer {
                 }
                 this.runtime.threads.length = nextActiveThread;
             }
+
+            if (breakPointEncountered) {
+                break;
+            }
         }
 
         this.activeThread = null;
@@ -175,6 +198,8 @@ class Sequencer {
     /**
      * Step the requested thread for as long as necessary.
      * @param {!Thread} thread Thread object to step.
+     *
+     * @return {boolean} - Indicates whether a breakpoint was encountered.
      */
     stepThread (thread) {
         let currentBlockId = thread.peekStack();
@@ -185,11 +210,17 @@ class Sequencer {
             // Did the null follow a hat block?
             if (thread.stack.length === 0) {
                 thread.status = Thread.STATUS_DONE;
-                return;
+                return false;
             }
         }
+
         // Save the current block ID to notice if we did control flow.
         while ((currentBlockId = thread.peekStack())) {
+            if (this.debugMode && this.breakpoints.has(currentBlockId)) {
+                this.blocksSinceLastBreakpoint = 0;
+                return true;
+            }
+
             let isWarpMode = thread.peekStackFrame().warpMode;
             if (isWarpMode && !thread.warpTimer) {
                 // Initialize warp-mode timer if it hasn't been already.
@@ -221,15 +252,16 @@ class Sequencer {
                     thread.warpTimer.timeElapsed() <= Sequencer.WARP_TIME) {
                     continue;
                 }
-                return;
+
+                return false;
             } else if (thread.status === Thread.STATUS_PROMISE_WAIT) {
                 // A promise was returned by the primitive. Yield the thread
                 // until the promise resolves. Promise resolution should reset
                 // thread.status to Thread.STATUS_RUNNING.
-                return;
+                return false;
             } else if (thread.status === Thread.STATUS_YIELD_TICK) {
                 // stepThreads will reset the thread to Thread.STATUS_RUNNING
-                return;
+                return false;
             }
             // If no control flow has happened, switch to next block.
             if (thread.peekStack() === currentBlockId) {
@@ -242,7 +274,7 @@ class Sequencer {
                 if (thread.stack.length === 0) {
                     // No more stack to run!
                     thread.status = Thread.STATUS_DONE;
-                    return;
+                    return false;
                 }
 
                 const stackFrame = thread.peekStackFrame();
@@ -257,7 +289,7 @@ class Sequencer {
                         thread.warpTimer.timeElapsed() > Sequencer.WARP_TIME) {
                         // Don't do anything to the stack, since loops need
                         // to be re-executed.
-                        return;
+                        return false;
                     }
                     // Don't go to the next block for this level of the stack,
                     // since loops need to be re-executed.
@@ -267,7 +299,7 @@ class Sequencer {
                     // This level of the stack was waiting for a value.
                     // This means a reporter has just returned - so don't go
                     // to the next block for this level of the stack.
-                    return;
+                    return false;
                 }
                 // Get next block of existing block on the stack.
                 thread.goToNextBlock();
