@@ -57,13 +57,6 @@ class Sequencer {
         // DEBUGGER VARIABLES
         this.debugMode = false;
         this.breakpoints = new Set();
-
-        this.firstBlock = true;
-        this.blocksSinceLastBreakpoint = 0;
-
-        this.runtime.on('PROJECT_STOP_ALL', () => {
-            this.firstBlock = true;
-        });
     }
 
     /**
@@ -217,7 +210,6 @@ class Sequencer {
         // Save the current block ID to notice if we did control flow.
         while ((currentBlockId = thread.peekStack())) {
             if (this.debugMode && this.breakpoints.has(currentBlockId)) {
-                this.blocksSinceLastBreakpoint = 0;
                 return true;
             }
 
