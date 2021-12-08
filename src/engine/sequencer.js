@@ -67,6 +67,11 @@ class Sequencer {
                 return target.hasOwnProperty(name) ? target[name] : false;
             }
         });
+
+        this.runtime.on('PROJECT_STOP_ALL', () => {
+            this.isRunPaused = false;
+            this.isStepPaused = false;
+        });
     }
 
     /**
