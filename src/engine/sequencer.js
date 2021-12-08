@@ -256,7 +256,7 @@ class Sequencer {
             // If `justHitBreakpoint` is true, this means we hit the same breakpoint in a previous execution of
             // `stepThread`. So, now we can jump over it.
             if (this.debugMode && this.breakpoints.has(currentBlockId) && !this.justHitBreakpoint[thread]) {
-                log(`Breakpoint for block id ${currentBlockId} hit!`);
+                log.debug(`Breakpoint for block id ${currentBlockId} hit!`);
                 this.justHitBreakpoint[thread] = true;
                 return true;
             }
