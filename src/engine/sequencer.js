@@ -214,7 +214,7 @@ class Sequencer {
                     } else {
                         doneThreads.push(thread);
                         // If thread is done, remove it from the object to clear memory.
-                        delete this.justHitBreakpoint[thread];
+                        delete this.justHitBreakpoint[thread.topBlock];
                     }
                 }
                 this.runtime.threads.length = nextActiveThread;
@@ -260,9 +260,9 @@ class Sequencer {
             // If we are currently in debug mode and the current block contains a breakpoint, do not execute it.
             // If `justHitBreakpoint` is true, this means we hit the same breakpoint in a previous execution of
             // `stepThread`. So, now we can jump over it.
-            if (this.debugMode && this.breakpoints.has(currentBlockId) && !this.justHitBreakpoint[thread]) {
+            if (this.debugMode && this.breakpoints.has(currentBlockId) && !this.justHitBreakpoint[thread.topBlock]) {
                 log.debug(`Breakpoint for block id ${currentBlockId} hit!`);
-                this.justHitBreakpoint[thread] = true;
+                this.justHitBreakpoint[thread.topBlock] = true;
                 return true;
             }
 
@@ -288,7 +288,7 @@ class Sequencer {
                 execute(this, thread);
             }
 
-            this.justHitBreakpoint[thread] = false;
+            this.justHitBreakpoint[thread.topBlock] = false;
 
             thread.blockGlowInFrame = currentBlockId;
             // If the thread has yielded or is waiting, yield to other threads.
