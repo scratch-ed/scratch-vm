@@ -69,8 +69,7 @@ class Sequencer {
         });
 
         this.runtime.on('PROJECT_STOP_ALL', () => {
-            this.isRunPaused = false;
-            this.isStepPaused = false;
+            this.resume();
         });
     }
 
@@ -85,6 +84,7 @@ class Sequencer {
     pause () {
         this.isRunPaused = true;
         this.isStepPaused = true;
+        this.runtime.emit('PROJECT_PAUSED');
     }
 
     isPaused () {
@@ -93,6 +93,8 @@ class Sequencer {
 
     resume () {
         this.isRunPaused = false;
+        this.isStepPaused = false;
+        this.runtime.emit('PROJECT_RESUMED');
     }
 
     step () {

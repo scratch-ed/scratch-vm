@@ -1321,7 +1321,7 @@ class VirtualMachine extends EventEmitter {
     }
 
     /**
-     * Emit an Blockly/scratch-blocks compatible XML representation
+     * Emit a Blockly/scratch-blocks compatible XML representation
      * of the current editing target's blocks.
      */
     emitWorkspaceUpdate () {
