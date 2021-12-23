@@ -62,6 +62,21 @@ class Sequencer {
         this.isRunPaused = false;
         this.isStepPaused = false;
 
+        this.lastExecutedBlock = new Proxy({}, {
+            // Update glow when new last block is added to the object.
+            set: (target, name, value) => {
+                if (this.isRunPaused) {
+                    if (target[name]) {
+                        this.runtime.glowBlock(target[name], false);
+                    }
+
+                    this.runtime.glowBlock(value, true);
+                }
+
+                target[name] = value;
+            }
+        });
+
         this.justHitBreakpoint = new Proxy({}, {
             get: function (target, name) {
                 return target.hasOwnProperty(name) ? target[name] : false;
@@ -70,6 +85,14 @@ class Sequencer {
 
         this.runtime.on('PROJECT_STOP_ALL', () => {
             this.resume();
+
+            // Clear both objects.
+            Object.getOwnPropertyNames(this.lastExecutedBlock).forEach(property => {
+                delete this.lastExecutedBlock[property];
+            });
+            Object.getOwnPropertyNames(this.justHitBreakpoint).forEach(property => {
+                delete this.justHitBreakpoint[property];
+            });
         });
     }
 
@@ -81,20 +104,32 @@ class Sequencer {
         return 500;
     }
 
+    isPaused () {
+        return this.isRunPaused && this.isStepPaused;
+    }
+
+    glowLastExecutedBlocks (enableGlow) {
+        for (const topBlock in this.lastExecutedBlock) {
+            if (this.lastExecutedBlock[topBlock]) {
+                this.runtime.glowBlock(this.lastExecutedBlock[topBlock], enableGlow);
+            }
+        }
+    }
+
     pause () {
         this.isRunPaused = true;
         this.isStepPaused = true;
         this.runtime.emit('PROJECT_PAUSED');
-    }
 
-    isPaused () {
-        return this.isRunPaused && this.isStepPaused;
+        this.glowLastExecutedBlocks(true);
     }
 
     resume () {
         this.isRunPaused = false;
         this.isStepPaused = false;
         this.runtime.emit('PROJECT_RESUMED');
+
+        this.glowLastExecutedBlocks(false);
     }
 
     step () {
@@ -215,8 +250,9 @@ class Sequencer {
                         nextActiveThread++;
                     } else {
                         doneThreads.push(thread);
-                        // If thread is done, remove it from the object to clear memory.
+                        // If thread is done, remove it from the objects to clear memory.
                         delete this.justHitBreakpoint[thread.topBlock];
+                        delete this.lastExecutedBlock[thread.topBlock];
                     }
                 }
                 this.runtime.threads.length = nextActiveThread;
@@ -230,7 +266,7 @@ class Sequencer {
         // If the sequencer was only resumed for one step,
         // pause again after this step.
         if (!this.isStepPaused && this.isRunPaused) {
-            this.pause();
+            this.isStepPaused = true;
         }
 
         this.activeThread = null;
@@ -296,6 +332,7 @@ class Sequencer {
             }
 
             this.justHitBreakpoint[thread.topBlock] = false;
+            this.lastExecutedBlock[thread.topBlock] = currentBlockId;
 
             thread.blockGlowInFrame = currentBlockId;
             // If the thread has yielded or is waiting, yield to other threads.
