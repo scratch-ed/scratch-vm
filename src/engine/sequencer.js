@@ -230,7 +230,7 @@ class Sequencer {
         // If the sequencer was only resumed for one step,
         // pause again after this step.
         if (!this.isStepPaused && this.isRunPaused) {
-            this.isStepPaused = true;
+            this.pause();
         }
 
         this.activeThread = null;
@@ -262,9 +262,14 @@ class Sequencer {
             // If we are currently in debug mode and the current block contains a breakpoint, do not execute it.
             // If `justHitBreakpoint` is true, this means we hit the same breakpoint in a previous execution of
             // `stepThread`. So, now we can jump over it.
-            if (this.debugMode && this.breakpoints.has(currentBlockId) && !this.justHitBreakpoint[thread.topBlock]) {
+            if (this.debugMode &&
+                !this.isRunPaused && // Don't pause for breakpoint when step is taken.
+                this.breakpoints.has(currentBlockId) &&
+                !this.justHitBreakpoint[thread.topBlock]
+            ) {
                 log.debug(`Breakpoint for block id ${currentBlockId} hit!`);
                 this.justHitBreakpoint[thread.topBlock] = true;
+
                 return true;
             }
 
