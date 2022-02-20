@@ -57,7 +57,7 @@ class Sequencer {
 
         // DEBUGGER VARIABLES
         this.debugMode = false;
-        this.breakpoints = new Set();
+        this.breakpoints = new Map();
 
         this.isRunPaused = false;
         this.isStepPaused = false;
