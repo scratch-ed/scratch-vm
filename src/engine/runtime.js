@@ -399,7 +399,41 @@ class Runtime extends EventEmitter {
          * @type {?string}
          */
         this.origin = null;
+
+        // DEBUGGER VARIABLES
+        this.debugMode = false;
+        this.breakpoints = new Map();
+
+        this.isRunPaused = false;
+        this.isStepPaused = false;
+        // DEBUGGER VARIABLES
     }
+
+    // DEBUGGER METHODS
+    isPaused () {
+        return this.isRunPaused && this.isStepPaused;
+    }
+
+    pause () {
+        this.isRunPaused = true;
+        this.isStepPaused = true;
+        this.emit('PROJECT_PAUSED');
+
+        this.sequencer.glowLastExecutedBlocks(true);
+    }
+
+    resume () {
+        this.isRunPaused = false;
+        this.isStepPaused = false;
+        this.emit('PROJECT_RESUMED');
+
+        this.sequencer.glowLastExecutedBlocks(false);
+    }
+
+    step () {
+        this.isStepPaused = false;
+    }
+    // DEBUGGER METHODS
 
     /**
      * Width of the stage, in pixels.

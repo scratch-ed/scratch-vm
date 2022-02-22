@@ -55,8 +55,7 @@ class Scratch3DebuggerBlocks {
                     }),
                     arguments: {
                         CONDITION: {
-                            type: ArgumentType.BOOLEAN,
-
+                            type: ArgumentType.BOOLEAN
                         }
                     }
                 }
@@ -68,15 +67,22 @@ class Scratch3DebuggerBlocks {
      * The "break" block breaks the execution of the program.
      */
     break () {
+        if (!this.runtime.debugMode) {
+            return;
+        }
+
         console.log('BREAK');
     }
 
     /**
      * The "break" block breaks the execution of the program.
      * @param {object} args - the block's arguments
-     * @param {object} util - utility object provided by the runtime
      */
-    breakConditional (args, util) {
+    breakConditional (args) {
+        if (!this.runtime.debugMode || !args.CONDITION) {
+            return;
+        }
+
         console.log('BREAK CONDITIONAL');
     }
 }

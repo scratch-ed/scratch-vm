@@ -55,17 +55,10 @@ class Sequencer {
 
         this.activeThread = null;
 
-        // DEBUGGER VARIABLES
-        this.debugMode = false;
-        this.breakpoints = new Map();
-
-        this.isRunPaused = false;
-        this.isStepPaused = false;
-
         this.lastExecutedBlock = new Proxy({}, {
             // Update glow when new last block is added to the object.
             set: (target, name, value) => {
-                if (this.isRunPaused) {
+                if (this.runtime.isRunPaused) {
                     if (target[name]) {
                         this.runtime.glowBlock(target[name], false);
                     }
@@ -84,7 +77,7 @@ class Sequencer {
         });
 
         this.runtime.on('PROJECT_STOP_ALL', () => {
-            this.resume();
+            this.runtime.resume();
 
             // Clear both objects.
             Object.getOwnPropertyNames(this.lastExecutedBlock).forEach(property => {
@@ -104,36 +97,12 @@ class Sequencer {
         return 500;
     }
 
-    isPaused () {
-        return this.isRunPaused && this.isStepPaused;
-    }
-
     glowLastExecutedBlocks (enableGlow) {
         for (const topBlock in this.lastExecutedBlock) {
             if (this.lastExecutedBlock[topBlock]) {
                 this.runtime.glowBlock(this.lastExecutedBlock[topBlock], enableGlow);
             }
         }
-    }
-
-    pause () {
-        this.isRunPaused = true;
-        this.isStepPaused = true;
-        this.runtime.emit('PROJECT_PAUSED');
-
-        this.glowLastExecutedBlocks(true);
-    }
-
-    resume () {
-        this.isRunPaused = false;
-        this.isStepPaused = false;
-        this.runtime.emit('PROJECT_RESUMED');
-
-        this.glowLastExecutedBlocks(false);
-    }
-
-    step () {
-        this.isStepPaused = false;
     }
 
     /**
@@ -145,7 +114,7 @@ class Sequencer {
 
         // If the sequencer is completely paused,
         // don't step any threads.
-        if (this.isPaused()) {
+        if (this.runtime.isPaused()) {
             return doneThreads;
         }
 
@@ -210,7 +179,7 @@ class Sequencer {
 
                     if (this.stepThread(activeThread)) {
                         breakpointEncountered = true;
-                        this.pause();
+                        this.runtime.pause();
 
                         break;
                     }
@@ -265,8 +234,8 @@ class Sequencer {
 
         // If the sequencer was only resumed for one step,
         // pause again after this step.
-        if (!this.isStepPaused && this.isRunPaused) {
-            this.isStepPaused = true;
+        if (!this.runtime.isStepPaused && this.runtime.isRunPaused) {
+            this.runtime.isStepPaused = true;
         }
 
         this.activeThread = null;
@@ -298,9 +267,9 @@ class Sequencer {
             // If we are currently in debug mode and the current block contains a breakpoint, do not execute it.
             // If `justHitBreakpoint` is true, this means we hit the same breakpoint in a previous execution of
             // `stepThread`. So, now we can jump over it.
-            if (this.debugMode &&
-                !this.isRunPaused && // Don't pause for breakpoint when step is taken.
-                this.breakpoints.has(currentBlockId) &&
+            if (this.runtime.debugMode &&
+                !this.runtime.isRunPaused && // Don't pause for breakpoint when step is taken.
+                this.runtime.breakpoints.has(currentBlockId) &&
                 !this.justHitBreakpoint[thread.topBlock]
             ) {
                 log.debug(`Breakpoint for block id ${currentBlockId} hit!`);
