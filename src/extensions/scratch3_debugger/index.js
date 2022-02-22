@@ -77,7 +77,7 @@ class Scratch3DebuggerBlocks {
      * @param {object} util - utility object provided by the runtime
      */
     breakConditional (args, util) {
-        console.log('BREAK CONDITIONAL')
+        console.log('BREAK CONDITIONAL');
     }
 }
 
