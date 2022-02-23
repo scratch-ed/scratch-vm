@@ -402,7 +402,6 @@ class Runtime extends EventEmitter {
 
         // DEBUGGER VARIABLES
         this.debugMode = false;
-        this.breakpoints = new Map();
 
         this.isRunPaused = false;
         this.isStepPaused = false;
