@@ -406,6 +406,8 @@ class Runtime extends EventEmitter {
 
         this.isRunPaused = false;
         this.isStepPaused = false;
+
+        this.pauseRequested = false;
         // DEBUGGER VARIABLES
     }
 
@@ -432,6 +434,10 @@ class Runtime extends EventEmitter {
 
     step () {
         this.isStepPaused = false;
+    }
+
+    requestPause () {
+        this.pauseRequested = true;
     }
     // DEBUGGER METHODS
 

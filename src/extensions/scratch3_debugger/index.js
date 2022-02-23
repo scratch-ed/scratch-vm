@@ -2,13 +2,14 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 
 const formatMessage = require('format-message');
+const Cast = require('../../util/cast');
 
 /**
  * Icon SVG to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
  */
 // eslint-disable-next-line max-len
-const blockIconURI = '';
+// const blockIconURI = '';
 
 /**
  * Host for the debugger-related blocks in Scratch 3.0.
@@ -71,7 +72,7 @@ class Scratch3DebuggerBlocks {
             return;
         }
 
-        console.log('BREAK');
+        this.runtime.requestPause();
     }
 
     /**
@@ -79,11 +80,11 @@ class Scratch3DebuggerBlocks {
      * @param {object} args - the block's arguments
      */
     breakConditional (args) {
-        if (!this.runtime.debugMode || !args.CONDITION) {
+        if (!this.runtime.debugMode || !Cast.toBoolean(args.CONDITION)) {
             return;
         }
 
-        console.log('BREAK CONDITIONAL');
+        this.runtime.requestPause();
     }
 }
 
