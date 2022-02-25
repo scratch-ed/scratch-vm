@@ -411,8 +411,14 @@ class Runtime extends EventEmitter {
     }
 
     // DEBUGGER METHODS
-    isPaused () {
-        return this.isRunPaused && this.isStepPaused;
+    enableDebugMode () {
+        this.debugMode = true;
+        this.emit('DEBUG_MODE_ENABLED');
+    }
+
+    disableDebugMode () {
+        this.debugMode = false;
+        this.emit('DEBUG_MODE_DISABLED');
     }
 
     pause () {
@@ -433,6 +439,10 @@ class Runtime extends EventEmitter {
 
     step () {
         this.isStepPaused = false;
+    }
+
+    isPaused () {
+        return this.isRunPaused && this.isStepPaused;
     }
 
     requestPause () {

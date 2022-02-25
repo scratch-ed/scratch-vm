@@ -70,9 +70,6 @@ class Sequencer {
         });
 
         this.runtime.on('PROJECT_STOP_ALL', () => {
-            this.runtime.resume();
-
-            // Clear both objects.
             Object.getOwnPropertyNames(this.lastExecutedBlock).forEach(property => {
                 delete this.lastExecutedBlock[property];
             });
@@ -277,12 +274,11 @@ class Sequencer {
                 this.retireThread(thread);
             } else {
                 execute(this, thread);
+                this.lastExecutedBlock[thread.topBlock] = currentBlockId;
             }
 
             const pauseRequested = this.runtime.pauseRequested;
-
             thread.blockGlowInFrame = currentBlockId;
-            this.lastExecutedBlock[thread.topBlock] = currentBlockId;
 
             // If the thread has yielded or is waiting, yield to other threads.
             if (thread.status === Thread.STATUS_YIELD) {
