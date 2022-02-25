@@ -186,6 +186,9 @@ class Sequencer {
 
                 // If the current thread encountered a breakpoint, stop the for loop stepping the threads.
                 if (executionPaused) {
+                    this.runtime.pause();
+                    this.runtime.pauseRequested = false;
+
                     break;
                 }
             }
@@ -276,19 +279,17 @@ class Sequencer {
                 execute(this, thread);
             }
 
-            this.lastExecutedBlock[thread.topBlock] = currentBlockId;
+            const pauseRequested = this.runtime.pauseRequested;
+
             thread.blockGlowInFrame = currentBlockId;
+            this.lastExecutedBlock[thread.topBlock] = currentBlockId;
 
             // If the thread has yielded or is waiting, yield to other threads.
-            // If the current block is a breakpoint, none of the conditions in this if-else clause
-            // will evaluate to true.
             if (thread.status === Thread.STATUS_YIELD) {
                 // Mark as running for next iteration.
                 thread.status = Thread.STATUS_RUNNING;
                 // In warp mode, yielded blocks are re-executed immediately.
-                if (isWarpMode &&
-                    thread.warpTimer.timeElapsed() <= Sequencer.WARP_TIME
-                ) {
+                if (isWarpMode && thread.warpTimer.timeElapsed() <= Sequencer.WARP_TIME) {
                     continue;
                 }
 
@@ -306,15 +307,6 @@ class Sequencer {
             // If no control flow has happened, switch to next block.
             if (thread.peekStack() === currentBlockId) {
                 thread.goToNextBlock();
-
-                // If a breakpoint requests pause, pause the execution
-                // and indicate this by returning true.
-                if (this.runtime.pauseRequested) {
-                    this.runtime.pause();
-                    this.runtime.pauseRequested = false;
-
-                    return true;
-                }
             }
 
             // If no next block has been found at this point, look on the stack.
@@ -324,7 +316,7 @@ class Sequencer {
                 if (thread.stack.length === 0) {
                     // No more stack to run!
                     thread.status = Thread.STATUS_DONE;
-                    return false;
+                    return pauseRequested;
                 }
 
                 const stackFrame = thread.peekStackFrame();
@@ -335,12 +327,12 @@ class Sequencer {
                     // Return to yield for the frame/tick in general.
                     // Unless we're in warp mode - then only return if the
                     // warp timer is up.
-                    if (!isWarpMode ||
-                        thread.warpTimer.timeElapsed() > Sequencer.WARP_TIME) {
+                    if (!isWarpMode || thread.warpTimer.timeElapsed() > Sequencer.WARP_TIME) {
                         // Don't do anything to the stack, since loops need
                         // to be re-executed.
-                        return false;
+                        return pauseRequested;
                     }
+
                     // Don't go to the next block for this level of the stack,
                     // since loops need to be re-executed.
                     continue;
@@ -348,11 +340,15 @@ class Sequencer {
                     // This level of the stack was waiting for a value.
                     // This means a reporter has just returned - so don't go
                     // to the next block for this level of the stack.
-                    return false;
+                    return pauseRequested;
                 }
 
                 // Get next block of existing block on the stack.
                 thread.goToNextBlock();
+            }
+
+            if (pauseRequested) {
+                return true;
             }
         }
     }
