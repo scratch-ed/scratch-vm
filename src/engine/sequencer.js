@@ -70,6 +70,7 @@ class Sequencer {
         });
 
         this.runtime.on('PROJECT_STOP_ALL', () => {
+            this.glowLastExecutedBlocks(false);
             Object.getOwnPropertyNames(this.lastExecutedBlock).forEach(property => {
                 delete this.lastExecutedBlock[property];
             });
