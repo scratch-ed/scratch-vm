@@ -402,6 +402,7 @@ class Runtime extends EventEmitter {
 
         // DEBUGGER VARIABLES
         this.debugMode = false;
+        this.isRunning = false;
 
         this.isRunPaused = false;
         this.isStepPaused = false;
@@ -1820,8 +1821,7 @@ class Runtime extends EventEmitter {
      * @param {Target=} optTarget Optionally, a target to restrict to.
      * @return {Array.<Thread>} List of threads started by this function.
      */
-    startHats (requestedHatOpcode,
-        optMatchFields, optTarget) {
+    startHats (requestedHatOpcode, optMatchFields, optTarget) {
         if (!this._hats.hasOwnProperty(requestedHatOpcode)) {
             // No known hat with this opcode.
             return;
@@ -1890,6 +1890,7 @@ class Runtime extends EventEmitter {
             execute(this.sequencer, thread);
             thread.goToNextBlock();
         });
+
         return newThreads;
     }
 
@@ -2101,6 +2102,18 @@ class Runtime extends EventEmitter {
             }
             this.profiler.start(stepThreadsProfilerId);
         }
+
+        // The debugger might change the state of the sprites after execution has terminated.
+        // This if-clause makes sure all state is reset before the next execution begins.
+        // It does this by checking whether new non-monitor threads have been started.
+        if (this.debugMode && !this.isRunning && this.threads.length - this._getMonitorThreadCount(this.threads) > 0) {
+            this.emit(Runtime.PROJECT_STOP_ALL);
+
+            for (const target of this.targets) {
+                target.onStopAll();
+            }
+        }
+
         const doneThreads = this.sequencer.stepThreads();
         if (this.profiler !== null) {
             this.profiler.stop();
@@ -2110,7 +2123,8 @@ class Runtime extends EventEmitter {
         // flag will still indicate that a script ran.
         this._emitProjectRunStatus(
             this.threads.length + doneThreads.length -
-                this._getMonitorThreadCount([...this.threads, ...doneThreads]));
+            this._getMonitorThreadCount([...this.threads, ...doneThreads])
+        );
         // Store threads that completed this iteration for testing and other
         // internal purposes.
         this._lastStepDoneThreads = doneThreads;
@@ -2259,9 +2273,11 @@ class Runtime extends EventEmitter {
      */
     _emitProjectRunStatus (nonMonitorThreadCount) {
         if (this._nonMonitorThreadCount === 0 && nonMonitorThreadCount > 0) {
+            this.isRunning = true;
             this.emit(Runtime.PROJECT_RUN_START);
         }
         if (this._nonMonitorThreadCount > 0 && nonMonitorThreadCount === 0) {
+            this.isRunning = false;
             this.emit(Runtime.PROJECT_RUN_STOP);
         }
         this._nonMonitorThreadCount = nonMonitorThreadCount;
