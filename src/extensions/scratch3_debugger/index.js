@@ -59,6 +59,15 @@ class Scratch3DebuggerBlocks {
                             type: ArgumentType.BOOLEAN
                         }
                     }
+                },
+                {
+                    opcode: 'debugModeEnabled',
+                    blockType: BlockType.BOOLEAN,
+                    text: formatMessage({
+                        id: 'debugger.debuggerEnabled',
+                        default: 'debug mode enabled',
+                        description: 'is debug mode enabled?'
+                    })
                 }
             ]
         };
@@ -76,7 +85,9 @@ class Scratch3DebuggerBlocks {
     }
 
     /**
-     * The "break" block breaks the execution of the program.
+     * The "breakConditional" block breaks the execution of the program
+     * if the condition evaluates to true.
+     *
      * @param {object} args - the block's arguments
      */
     breakConditional (args) {
@@ -85,6 +96,15 @@ class Scratch3DebuggerBlocks {
         }
 
         this.runtime.requestPause();
+    }
+
+    /**
+     * The "debugModeEnabled" block indicates whether debug mode is enabled.
+     *
+     * @return {boolean} - whether debug mode is enabled
+     */
+    debugModeEnabled () {
+        return this.runtime.debugMode;
     }
 }
 
