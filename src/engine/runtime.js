@@ -2111,6 +2111,12 @@ class Runtime extends EventEmitter {
 
             for (const target of this.targets) {
                 target.onStopAll();
+                for (const clone of target.sprite.clones) {
+                    if (!clone.isOriginal) {
+                        this.disposeTarget(clone);
+                        this.stopForTarget(clone);
+                    }
+                }
             }
         }
 
