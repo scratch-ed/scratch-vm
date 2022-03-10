@@ -53,28 +53,6 @@ class Sequencer {
         this.runtime = runtime;
 
         this.activeThread = null;
-
-        this.lastExecutedBlock = new Proxy({}, {
-            // Update glow when new last block is added to the object.
-            set: (target, name, value) => {
-                if (this.runtime.isRunPaused) {
-                    if (target[name]) {
-                        this.runtime.glowBlock(target[name], false);
-                    }
-
-                    this.runtime.glowBlock(value, true);
-                }
-
-                target[name] = value;
-            }
-        });
-
-        this.runtime.on('PROJECT_STOP_ALL', () => {
-            this.glowLastExecutedBlocks(false);
-            Object.getOwnPropertyNames(this.lastExecutedBlock).forEach(property => {
-                delete this.lastExecutedBlock[property];
-            });
-        });
     }
 
     /**
@@ -83,14 +61,6 @@ class Sequencer {
      */
     static get WARP_TIME () {
         return 500;
-    }
-
-    glowLastExecutedBlocks (enableGlow) {
-        for (const topBlock in this.lastExecutedBlock) {
-            if (this.lastExecutedBlock[topBlock]) {
-                this.runtime.glowBlock(this.lastExecutedBlock[topBlock], enableGlow);
-            }
-        }
     }
 
     /**
@@ -209,9 +179,6 @@ class Sequencer {
                         nextActiveThread++;
                     } else {
                         doneThreads.push(thread);
-
-                        // If thread is done, remove it from the objects to clear memory.
-                        delete this.lastExecutedBlock[thread.topBlock];
                     }
                 }
                 this.runtime.threads.length = nextActiveThread;
@@ -275,7 +242,6 @@ class Sequencer {
                 this.retireThread(thread);
             } else {
                 execute(this, thread);
-                this.lastExecutedBlock[thread.topBlock] = currentBlockId;
             }
 
             const pauseRequested = this.runtime.pauseRequested;

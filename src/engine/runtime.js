@@ -426,16 +426,12 @@ class Runtime extends EventEmitter {
         this.isRunPaused = true;
         this.isStepPaused = true;
         this.emit('PROJECT_PAUSED');
-
-        this.sequencer.glowLastExecutedBlocks(true);
     }
 
     resume () {
         this.isRunPaused = false;
         this.isStepPaused = false;
         this.emit('PROJECT_RESUMED');
-
-        this.sequencer.glowLastExecutedBlocks(false);
     }
 
     step () {
