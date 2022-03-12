@@ -402,7 +402,7 @@ class Runtime extends EventEmitter {
 
         // DEBUGGER VARIABLES
         this.debugMode = false;
-        this.isRunning = false;
+        this.rewindMode = false;
 
         this.isRunPaused = false;
         this.isStepPaused = false;
@@ -420,6 +420,16 @@ class Runtime extends EventEmitter {
     disableDebugMode () {
         this.debugMode = false;
         this.emit('DEBUG_MODE_DISABLED');
+    }
+
+    enableRewindMode () {
+        this.rewindMode = true;
+        this.emit('REWIND_MODE_ENABLED');
+    }
+
+    disableRewindMode () {
+        this.rewindMode = false;
+        this.emit('REWIND_MODE_DISABLED');
     }
 
     pause () {
@@ -1818,6 +1828,11 @@ class Runtime extends EventEmitter {
      * @return {Array.<Thread>} List of threads started by this function.
      */
     startHats (requestedHatOpcode, optMatchFields, optTarget) {
+        // Disable starting hats when in rewind mode.
+        if (this.rewindMode) {
+            return [];
+        }
+
         if (!this._hats.hasOwnProperty(requestedHatOpcode)) {
             // No known hat with this opcode.
             return;
@@ -2099,21 +2114,9 @@ class Runtime extends EventEmitter {
             this.profiler.start(stepThreadsProfilerId);
         }
 
-        // The debugger might change the state of the sprites after execution has terminated.
-        // This if-clause makes sure all state is reset before the next execution begins.
-        // It does this by checking whether new non-monitor threads have been started.
-        if (this.debugMode && !this.isRunning && this.threads.length - this._getMonitorThreadCount(this.threads) > 0) {
-            this.emit(Runtime.PROJECT_STOP_ALL);
-
-            for (const target of this.targets) {
-                target.onStopAll();
-                for (const clone of target.sprite.clones) {
-                    if (!clone.isOriginal) {
-                        this.disposeTarget(clone);
-                        this.stopForTarget(clone);
-                    }
-                }
-            }
+        // Only allow the execution of watches in rewind mode.
+        if (this.rewindMode) {
+            this.threads = this.threads.filter(thread => thread.updateMonitor);
         }
 
         const doneThreads = this.sequencer.stepThreads();
@@ -2275,11 +2278,9 @@ class Runtime extends EventEmitter {
      */
     _emitProjectRunStatus (nonMonitorThreadCount) {
         if (this._nonMonitorThreadCount === 0 && nonMonitorThreadCount > 0) {
-            this.isRunning = true;
             this.emit(Runtime.PROJECT_RUN_START);
         }
         if (this._nonMonitorThreadCount > 0 && nonMonitorThreadCount === 0) {
-            this.isRunning = false;
             this.emit(Runtime.PROJECT_RUN_STOP);
         }
         this._nonMonitorThreadCount = nonMonitorThreadCount;
