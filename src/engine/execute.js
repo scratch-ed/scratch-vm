@@ -387,7 +387,10 @@ const _prepareBlockProfiling = function (profiler, blockCached) {
 
     const ops = blockCached._ops;
     for (let i = 0; i < ops.length; i++) {
-        ops[i]._profilerFrame = profiler.frame(blockFunctionProfilerId, ops[i].opcode);
+        ops[i]._profilerFrame = profiler.frame(
+            blockFunctionProfilerId,
+            {blockId: ops[i].id, opcode: ops[i].opcode}
+        );
     }
 };
 
