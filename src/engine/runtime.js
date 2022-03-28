@@ -1830,7 +1830,7 @@ class Runtime extends EventEmitter {
     startHats (requestedHatOpcode, optMatchFields, optTarget) {
         // Disable starting hats when in rewind mode.
         if (this.rewindMode) {
-            return [];
+            return;
         }
 
         if (!this._hats.hasOwnProperty(requestedHatOpcode)) {
@@ -1895,6 +1895,12 @@ class Runtime extends EventEmitter {
             // Start the thread with this top block.
             newThreads.push(this._pushThread(topBlockId, target));
         }, optTarget);
+
+        // Emit event when we go from no active threads to 1 or more active threads.
+        if (this._nonMonitorThreadCount === 0 && newThreads.length > 0) {
+            this.emit('THREADS_STARTED');
+        }
+
         // For compatibility with Scratch 2, edge triggered hats need to be processed before
         // threads are stepped. See ScratchRuntime.as for original implementation
         newThreads.forEach(thread => {
@@ -2080,6 +2086,9 @@ class Runtime extends EventEmitter {
         }
         // Remove all remaining threads from executing in the next tick.
         this.threads = [];
+
+        // Unpause execution when stopping.
+        this.resume();
     }
 
     /**
