@@ -290,7 +290,7 @@ class Sequencer {
                     // Return to yield for the frame/tick in general.
                     // Unless we're in warp mode - then only return if the
                     // warp timer is up.
-                    if (!isWarpMode || thread.warpTimer.timeElapsed() > Sequencer.WARP_TIME) {
+                    if (pauseRequested || !isWarpMode || thread.warpTimer.timeElapsed() > Sequencer.WARP_TIME) {
                         // Don't do anything to the stack, since loops need
                         // to be re-executed.
                         return pauseRequested;
