@@ -191,7 +191,7 @@ class Sequencer {
         }
 
         // If the sequencer was only resumed for one step, pause again after this step.
-        if (!this.runtime.isStepPaused && this.runtime.isRunPaused) {
+        if (this.runtime.inStep()) {
             this.runtime.isStepPaused = true;
         }
 

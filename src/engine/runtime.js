@@ -248,6 +248,12 @@ class Runtime extends EventEmitter {
         this._scriptGlowsPreviousFrame = [];
 
         /**
+         * A list of block IDs that were glowing during the previous frame.
+         * @type {!Array.<!string>}
+         */
+        this._blockGlowsPreviousFrame = [];
+
+        /**
          * Number of non-monitor threads running during the previous frame.
          * @type {number}
          */
@@ -450,6 +456,10 @@ class Runtime extends EventEmitter {
 
     isPaused () {
         return this.isRunPaused && this.isStepPaused;
+    }
+
+    inStep () {
+        return !this.isStepPaused && this.isRunPaused;
     }
 
     requestPause () {
@@ -2133,6 +2143,7 @@ class Runtime extends EventEmitter {
             this.profiler.stop();
         }
         this._updateGlows(doneThreads);
+        this._updateBlockGlows(doneThreads);
         // Add done threads so that even if a thread finishes within 1 frame, the green
         // flag will still indicate that a script ran.
         this._emitProjectRunStatus(
@@ -2202,7 +2213,9 @@ class Runtime extends EventEmitter {
         this._editingTarget = editingTarget;
         // Script glows must be cleared.
         this._scriptGlowsPreviousFrame = [];
+        this._blockGlowsPreviousFrame = [];
         this._updateGlows();
+        this._updateBlockGlows();
 
         if (oldEditingTarget !== this._editingTarget) {
             this.requestToolboxExtensionsUpdate();
@@ -2277,6 +2290,51 @@ class Runtime extends EventEmitter {
             }
         }
         this._scriptGlowsPreviousFrame = finalScriptGlows;
+    }
+
+    _updateBlockGlows (optExtraThreads) {
+        const searchThreads = [];
+
+        if (this.debugMode) {
+            searchThreads.push.apply(searchThreads, this.threads);
+            if (optExtraThreads) {
+                searchThreads.push.apply(searchThreads, optExtraThreads);
+            }
+        }
+
+        const requestedGlowsThisFrame = [];
+        const finalBlockGlows = [];
+
+        for (let i = 0; i < searchThreads.length; i++) {
+            const thread = searchThreads[i];
+            const target = thread.target;
+            if (target === this._editingTarget && thread.requestScriptGlowInFrame) {
+                const blockForThread = thread.blockGlowInFrame;
+                requestedGlowsThisFrame.push(blockForThread);
+            }
+        }
+
+        for (let j = 0; j < this._blockGlowsPreviousFrame.length; j++) {
+            const previousFrameGlow = this._blockGlowsPreviousFrame[j];
+            if (requestedGlowsThisFrame.indexOf(previousFrameGlow) < 0) {
+                // Glow turned off.
+                this.glowBlock(previousFrameGlow, false);
+            } else {
+                // Still glowing.
+                finalBlockGlows.push(previousFrameGlow);
+            }
+        }
+
+        for (let k = 0; k < requestedGlowsThisFrame.length; k++) {
+            const currentFrameGlow = requestedGlowsThisFrame[k];
+            if (this._blockGlowsPreviousFrame.indexOf(currentFrameGlow) < 0) {
+                // Glow turned on.
+                this.glowBlock(currentFrameGlow, true);
+                finalBlockGlows.push(currentFrameGlow);
+            }
+        }
+
+        this._blockGlowsPreviousFrame = finalBlockGlows;
     }
 
     /**
