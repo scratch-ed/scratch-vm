@@ -134,7 +134,8 @@ class Sequencer {
                         this.runtime.profiler.increment(stepThreadProfilerId);
                     }
 
-                    executionPaused = this.stepThread(activeThread);
+                    this.stepThread(activeThread);
+                    executionPaused = this.runtime.pauseRequested;
 
                     activeThread.warpTimer = null;
                     if (activeThread.isKilled) {
@@ -203,8 +204,6 @@ class Sequencer {
     /**
      * Step the requested thread for as long as necessary.
      * @param {!Thread} thread Thread object to step.
-     *
-     * @return {boolean} - Indicates whether a breakpoint was encountered.
      */
     stepThread (thread) {
         let currentBlockId = thread.peekStack();
@@ -215,7 +214,7 @@ class Sequencer {
             // Did the null follow a hat block?
             if (thread.stack.length === 0) {
                 thread.status = Thread.STATUS_DONE;
-                return false;
+                return;
             }
         }
 
@@ -256,15 +255,15 @@ class Sequencer {
                     continue;
                 }
 
-                return false;
+                return;
             } else if (thread.status === Thread.STATUS_PROMISE_WAIT) {
                 // A promise was returned by the primitive. Yield the thread
                 // until the promise resolves. Promise resolution should reset
                 // thread.status to Thread.STATUS_RUNNING.
-                return false;
+                return;
             } else if (thread.status === Thread.STATUS_YIELD_TICK) {
                 // stepThreads will reset the thread to Thread.STATUS_RUNNING
-                return false;
+                return;
             }
 
             // If no control flow has happened, switch to next block.
@@ -279,7 +278,7 @@ class Sequencer {
                 if (thread.stack.length === 0) {
                     // No more stack to run!
                     thread.status = Thread.STATUS_DONE;
-                    return pauseRequested;
+                    return;
                 }
 
                 const stackFrame = thread.peekStackFrame();
@@ -293,7 +292,7 @@ class Sequencer {
                     if (pauseRequested || !isWarpMode || thread.warpTimer.timeElapsed() > Sequencer.WARP_TIME) {
                         // Don't do anything to the stack, since loops need
                         // to be re-executed.
-                        return pauseRequested;
+                        return;
                     }
 
                     // Don't go to the next block for this level of the stack,
@@ -303,7 +302,7 @@ class Sequencer {
                     // This level of the stack was waiting for a value.
                     // This means a reporter has just returned - so don't go
                     // to the next block for this level of the stack.
-                    return pauseRequested;
+                    return;
                 }
 
                 // Get next block of existing block on the stack.
@@ -311,7 +310,7 @@ class Sequencer {
             }
 
             if (pauseRequested) {
-                return true;
+                return;
             }
         }
     }
