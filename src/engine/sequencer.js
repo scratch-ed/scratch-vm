@@ -186,7 +186,7 @@ class Sequencer {
             }
 
             // If one of the threads encountered a breakpoint, stop stepping all together.
-            if (executionPaused) {
+            if (this.runtime.inStep() || executionPaused) {
                 break;
             }
         }
@@ -251,7 +251,7 @@ class Sequencer {
                 // Mark as running for next iteration.
                 thread.status = Thread.STATUS_RUNNING;
                 // In warp mode, yielded blocks are re-executed immediately.
-                if (isWarpMode && thread.warpTimer.timeElapsed() <= Sequencer.WARP_TIME) {
+                if (!pauseRequested && isWarpMode && thread.warpTimer.timeElapsed() <= Sequencer.WARP_TIME) {
                     continue;
                 }
 
@@ -309,7 +309,7 @@ class Sequencer {
                 thread.goToNextBlock();
             }
 
-            if (pauseRequested) {
+            if (this.runtime.inStep() || pauseRequested) {
                 return;
             }
         }

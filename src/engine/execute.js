@@ -578,6 +578,8 @@ const execute = function (sequencer, thread) {
             ops[p]._profilerFrame.count += 1;
         }
     }
+
+    sequencer.runtime.emit('OPS_EXECUTED', ops);
 };
 
 module.exports = execute;
