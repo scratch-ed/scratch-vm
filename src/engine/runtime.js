@@ -2301,6 +2301,10 @@ class Runtime extends EventEmitter {
     }
 
     _updateBlockIndications (optExtraThreads) {
+        if (this.rewindMode) {
+            return;
+        }
+
         const searchThreads = [];
 
         if (this.debugMode) {
