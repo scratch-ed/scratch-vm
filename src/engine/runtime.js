@@ -452,6 +452,7 @@ class Runtime extends EventEmitter {
 
     step () {
         this.isStepPaused = false;
+        this.emit('PROJECT_STEPPED');
     }
 
     isPaused () {
