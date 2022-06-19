@@ -2108,6 +2108,7 @@ class Runtime extends EventEmitter {
 
         // Unpause execution when stopping.
         this.resume();
+        this._updateBlockIndications();
     }
 
     /**
