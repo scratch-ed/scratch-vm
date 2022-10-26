@@ -414,7 +414,6 @@ class Runtime extends EventEmitter {
 
         // DEBUGGER VARIABLES
         this.debugMode = false;
-        this.rewindMode = false;
 
         this.isRunPaused = false;
         this.isStepPaused = false;
@@ -432,16 +431,6 @@ class Runtime extends EventEmitter {
     disableDebugMode () {
         this.debugMode = false;
         this.emit('DEBUG_MODE_DISABLED');
-    }
-
-    enableRewindMode () {
-        this.rewindMode = true;
-        this.emit('REWIND_MODE_ENABLED');
-    }
-
-    disableRewindMode () {
-        this.rewindMode = false;
-        this.emit('REWIND_MODE_DISABLED');
     }
 
     pause () {
@@ -1891,11 +1880,6 @@ class Runtime extends EventEmitter {
      * @return {Array.<Thread>} List of threads started by this function.
      */
     startHats (requestedHatOpcode, optMatchFields, optTarget) {
-        // Disable starting hats when in rewind mode.
-        if (this.rewindMode) {
-            return;
-        }
-
         if (!this._hats.hasOwnProperty(requestedHatOpcode)) {
             // No known hat with this opcode.
             return;
@@ -2202,11 +2186,6 @@ class Runtime extends EventEmitter {
             this.profiler.start(stepThreadsProfilerId);
         }
 
-        // Only allow the execution of watches in rewind mode.
-        if (this.rewindMode) {
-            this.threads = this.threads.filter(thread => thread.updateMonitor);
-        }
-
         const doneThreads = this.sequencer.stepThreads();
         if (this.profiler !== null) {
             this.profiler.stop();
@@ -2362,10 +2341,6 @@ class Runtime extends EventEmitter {
     }
 
     _updateBlockIndications (optExtraThreads) {
-        if (this.rewindMode) {
-            return;
-        }
-
         const searchThreads = [];
 
         if (this.debugMode) {
