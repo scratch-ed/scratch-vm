@@ -18,6 +18,17 @@ class Scratch3ItchBlocks {
         this.runtime = runtime;
     }
 
+    _getKeyList () {
+        const keys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowRight', 'ArrowLeft'];
+        for (let i = 0; i < 26; i++) {
+            keys.push(String.fromCharCode(97 + i));
+        }
+        for (let i = 0; i < 10; i++) {
+            keys.push(i.toString());
+        }
+        return keys;
+    }
+
     /**
      * @return {object} This extension's metadata.
      */
@@ -139,8 +150,84 @@ class Scratch3ItchBlocks {
                         default: 'Test flag clicked',
                         description: 'Label on the "Test flag clicked" block'
                     })
+                },
+                {
+                    // Required: the machine-readable name of this operation.
+                    // This will appear in project JSON.
+                    opcode: 'pressKey', // becomes 'itch.assert'
+
+                    // Required: the kind of block we're defining, from a predefined list.
+                    // Fully supported block types:
+                    //   BlockType.BOOLEAN - same as REPORTER but returns a Boolean value
+                    //   BlockType.COMMAND - a normal command block, like "move {} steps"
+                    //   BlockType.HAT - starts a stack if its value changes from falsy to truthy ("edge triggered")
+                    //   BlockType.REPORTER - returns a value, like "direction"
+                    // Block types in development or for internal use only:
+                    //   BlockType.BUTTON - place a button in the block palette
+                    //   BlockType.CONDITIONAL - control flow, like "if {}" or "if {} else {}"
+                    //     A CONDITIONAL block may return the one-based index of a branch to
+                    //     run, or it may return zero/falsy to run no branch.
+                    //   BlockType.EVENT - starts a stack in response to an event (full spec TBD)
+                    //   BlockType.LOOP - control flow, like "repeat {} {}" or "forever {}"
+                    //     A LOOP block is like a CONDITIONAL block with two differences:
+                    //     - the block is assumed to have exactly one child branch, and
+                    //     - each time a child branch finishes, the loop block is called again.
+                    blockType: BlockType.COMMAND,
+
+                    // Required for CONDITIONAL blocks, ignored for others: the number of
+                    // child branches this block controls. An "if" or "repeat" block would
+                    // specify a branch count of 1; an "if-else" block would specify a
+                    // branch count of 2.
+                    // TODO: should we support dynamic branch count for "switch"-likes?
+                    // branchCount: 0,
+
+                    // Required: the human-readable text on this block, including argument
+                    // placeholders. Argument placeholders should be in [MACRO_CASE] and
+                    // must be [ENCLOSED_WITHIN_SQUARE_BRACKETS].
+                    text: formatMessage({
+                        id: 'pressKeyLabel',
+                        default: 'Press [KEY] key',
+                        description: 'Label on the "pressKey" block'
+                    }),
+
+                    // Required: describe each argument.
+                    // Argument order may change during translation, so arguments are
+                    // identified by their placeholder name. In those situations where
+                    // arguments must be ordered or assigned an ordinal, such as interaction
+                    // with Scratch Blocks, arguments are ordered as they are in the default
+                    // translation (probably English).
+                    arguments: {
+                        // Required: the ID of the argument, which will be the name in the
+                        // args object passed to the implementation function.
+                        KEY: {
+                            // Required: type of the argument / shape of the block input
+                            type: ArgumentType.STRING,
+                            menu: 'keys'
+
+                            // Optional: the default value of the argument
+                            // default: false
+                        }
+                    }
                 }
-            ]
+            ],
+            // Optional: define extension-specific menus here.
+            menus: {
+                // Required: an identifier for this menu, unique within this extension.
+                keys: this._getKeyList()
+
+                // // Dynamic menu: returns an array as above.
+                // // Called each time the menu is opened.
+                // menuB: 'getItemsForMenuB',
+                //
+                // // The examples above are shorthand for setting only the `items` property in this full form:
+                // menuC: {
+                //     // This flag makes a "droppable" menu: the menu will allow dropping a reporter in for the input.
+                //     acceptReporters: true,
+                //
+                //     // The `item` property may be an array or function name as in previous menu examples.
+                //     items: [/*...*/] || 'getItemsForMenuC'
+                // }
+            }
         };
     }
 
@@ -165,7 +252,7 @@ class Scratch3ItchBlocks {
     }
 
     /**
-     * Implement assertWrong.
+     * Implement startTests.
      * @param {object} args - the block's arguments.
      * @returns {boolean} true if the sprite overlaps more motion than the
      *   reference
@@ -176,6 +263,15 @@ class Scratch3ItchBlocks {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Implement pressKey.
+     * @param {object} args - the block's arguments.
+     */
+    pressKey (args) {
+        this.runtime.ioDevices.keyboard.postData({key: args.KEY, isDown: true});
+        this.runtime.ioDevices.keyboard.postData({key: args.KEY, isDown: false});
     }
 }
 
