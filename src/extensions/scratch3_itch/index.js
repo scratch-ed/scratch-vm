@@ -54,7 +54,7 @@ class Scratch3ItchBlocks {
                 {
                     // Required: the machine-readable name of this operation.
                     // This will appear in project JSON.
-                    opcode: 'assert', // becomes 'someBlocks.myReporter'
+                    opcode: 'assert', // becomes 'itch.assert'
 
                     // Required: the kind of block we're defining, from a predefined list.
                     // Fully supported block types:
@@ -130,6 +130,15 @@ class Scratch3ItchBlocks {
                             })
                         }
                     }
+                },
+                {
+                    opcode: 'startTests',
+                    blockType: BlockType.HAT,
+                    text: formatMessage({
+                        id: 'startTestsLabel',
+                        default: 'Test flag clicked',
+                        description: 'Label on the "Test flag clicked" block'
+                    })
                 }
             ]
         };
@@ -153,6 +162,20 @@ class Scratch3ItchBlocks {
         if (!args.ASSERT_CONDITION) {
             alert(args.TEXT_WRONG);
         }
+    }
+
+    /**
+     * Implement assertWrong.
+     * @param {object} args - the block's arguments.
+     * @returns {boolean} true if the sprite overlaps more motion than the
+     *   reference
+     */
+    startTests (args) {
+        if (this.runtime.testFlagClicked) {
+            this.runtime.testFlagClicked = false;
+            return true;
+        }
+        return false;
     }
 }
 

@@ -415,6 +415,10 @@ class Runtime extends EventEmitter {
 
         this.pauseRequested = false;
         // DEBUGGER VARIABLES
+
+        // ITCH VARIABLES
+        this.testFlagClicked = false;
+        // ITCH VARIABLES
     }
 
     // DEBUGGER METHODS
@@ -556,6 +560,15 @@ class Runtime extends EventEmitter {
      */
     static get PROJECT_START () {
         return 'PROJECT_START';
+    }
+
+    /**
+     * Event name when the project is started (threads may not necessarily be
+     * running).
+     * @const {string}
+     */
+    static get PROJECT_TESTS_START () {
+        return 'PROJECT_TESTS_START';
     }
 
     /**
@@ -2078,6 +2091,14 @@ class Runtime extends EventEmitter {
             this.targets[i].onGreenFlag();
         }
         this.startHats('event_whenflagclicked');
+    }
+
+    /**
+     * Start the test thread.
+     */
+    testFlag () {
+        this.testFlagClicked = true;
+        this.emit(Runtime.PROJECT_TESTS_START);
     }
 
     /**
