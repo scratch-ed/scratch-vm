@@ -6,6 +6,25 @@ const BlockType = require('../../extension-support/block-type');
 // ...or VM dependencies:
 const formatMessage = require('format-message');
 
+const sb3 = require('../../serialization/sb3');
+
+const stageProperties = [
+    'backdrop #',
+    'backdrop name',
+    'volume'
+];
+const spriteProperties = [
+    'x position',
+    'y position',
+    'direction',
+    'costume #',
+    'costume name',
+    'size',
+    'volume'
+];
+// a state should also add the variables defined there (see blocks.js in the gui line 230)
+
+
 // Core, Team, and Official extension classes should be registered statically with the Extension Manager.
 // See: scratch-vm/src/extension-support/extension-manager.js
 class Scratch3ItchBlocks {
@@ -27,6 +46,67 @@ class Scratch3ItchBlocks {
             keys.push(i.toString());
         }
         return keys;
+    }
+
+    _getSpritesList () {
+        // todo: make complex list elements
+        return this.runtime.targets.map((target, _) => target.getName());
+    }
+
+    _getPropertiesList () {
+        // todo: different options when the selected sprite is a stage
+        // use: this.runtime.threads.at(0).peekStack() to know block
+        return spriteProperties;
+    }
+
+    /**
+     * _stringifyTargets.
+     * @param {Target[]} targets - list of the targets to stringify.
+     * @returns {string} value of the queried field
+     */
+    _stringifyTargets (targets) {
+        const result = [];
+        for (const target of targets) {
+            if (target.sprite) {
+                const spriteJson = {sprite: {}};
+                for (const property of spriteProperties) {
+                    spriteJson.sprite[property] = this._getAttributeOf(target, property);
+                }
+                result.push(spriteJson);
+            }
+        }
+        return JSON.stringify(result);
+    }
+
+    /**
+     * get an attribute of a target that is a sprite or a stage.
+     * @param {RenderedTarget|object} target - the target.
+     * @param {string} property - the property name.
+     * @returns {number|*} property value
+     * @private
+     */
+    _getAttributeOf (target, property) {
+        if (target.isStage) {
+            switch (property) {
+            case 'background #': return target.currentCostume + 1;
+            case 'backdrop #': return target.currentCostume + 1;
+            case 'backdrop name':
+                return target.costumes[target.currentCostume].name;
+            case 'volume': return target.volume;
+            }
+        } else {
+            switch (property) {
+            case 'x position': return target.x;
+            case 'y position': return target.y;
+            case 'direction': return target.direction;
+            case 'costume #': return target.currentCostume + 1;
+            case 'costume name':
+                return target.costumes[target.currentCostume].name;
+            case 'size': return target.size;
+            case 'volume': return target.volume;
+            }
+        }
+        return 0;
     }
 
     /**
@@ -161,18 +241,50 @@ class Scratch3ItchBlocks {
                         description: 'Label on the "pressKey" block'
                     }),
                     arguments: {
-
                         KEY: {
                             type: ArgumentType.STRING,
                             menu: 'keys'
                         }
                     }
+                },
+                {
+                    opcode: 'queryState',
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: 'queryStateLabel',
+                        default: '[PROPERTY] of [OBJECT] in [STATE]',
+                        description: 'Label on the "queryState" block'
+                    }),
+                    arguments: {
+                        PROPERTY: {
+                            type: ArgumentType.STRING,
+                            menu: 'properties'
+                        },
+                        OBJECT: {
+                            // Required: type of the argument / shape of the block input
+                            type: ArgumentType.STRING,
+                            menu: 'sprites'
+                        },
+                        STATE: {
+                            type: ArgumentType.STRING
+                        }
+                    }
+                },
+                {
+                    opcode: 'currentState',
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: 'currentStateLabel',
+                        default: 'current state',
+                        description: 'Label on the "currentState" variable'
+                    }),
+                    arguments: {}
                 }
             ],
             // Optional: define extension-specific menus here.
             menus: {
                 // Required: an identifier for this menu, unique within this extension.
-                keys: this._getKeyList()
+                keys: this._getKeyList(),
 
                 // // Dynamic menu: returns an array as above.
                 // // Called each time the menu is opened.
@@ -186,6 +298,22 @@ class Scratch3ItchBlocks {
                 //     // The `item` property may be an array or function name as in previous menu examples.
                 //     items: [/*...*/] || 'getItemsForMenuC'
                 // }
+
+                // The examples above are shorthand for setting only the `items` property in this full form:
+                sprites: {
+                    // This flag makes a "droppable" menu: the menu will allow dropping a reporter in for the input.
+                    acceptReporters: false,
+
+                    // The `item` property may be an array or function name as in previous menu examples.
+                    items: '_getSpritesList'
+                },
+                properties: {
+                    // This flag makes a "droppable" menu: the menu will allow dropping a reporter in for the input.
+                    acceptReporters: false,
+
+                    // The `item` property may be an array or function name as in previous menu examples.
+                    items: '_getPropertiesList'
+                }
             }
         };
     }
@@ -207,7 +335,6 @@ class Scratch3ItchBlocks {
                 count++;
             }
         });
-        console.log(count);
         return count;
     }
 
@@ -224,10 +351,10 @@ class Scratch3ItchBlocks {
     /**
      * Implement startTests.
      * @param {object} args - the block's arguments.
-     * @returns {boolean} true if the sprite overlaps more motion than the
-     *   reference
+     * @returns {boolean} true if the tests should start
      */
     startTests (args) {
+        // TODO: fix: this implementation is flawed since it only works with 1 head block
         if (this.runtime.testFlagClicked) {
             this.runtime.testFlagClicked = false;
             return true;
@@ -249,6 +376,35 @@ class Scratch3ItchBlocks {
         // const start = Date.now();
         // while (this._countNonEmptyStacks() > 1 && Date.now() - start < 1000) {}
 
+        // TODO: look at how broadcast and wait block is implemented
+    }
+
+    /**
+     * Implement queryState variable.
+     * @param {object} args - the block's arguments.
+     * @returns {string} value of the queried field
+     */
+    queryState (args) {
+        if (!args.STATE) return '';
+
+        const savedState = JSON.parse(args.STATE);
+        // console.log(sb3.deserialize(savedState, new Runtime(), undefined, false));
+        // console.log(savedState);
+        const sprite = savedState.targets.find(target => target.name === args.OBJECT);
+        // console.log(sprite);
+        if (sprite) {
+            return this._getAttributeOf(sprite, args.PROPERTY);
+        }
+        return '';
+    }
+
+    /**
+     * Implement currentState variable.
+     * @param {object} args - the block's arguments.
+     * @returns {string} string of a json that contains the runtime
+     */
+    currentState (args) {
+        return JSON.stringify(sb3.serialize(this.runtime));
     }
 }
 
