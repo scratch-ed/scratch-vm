@@ -416,9 +416,10 @@ class Runtime extends EventEmitter {
         this.pauseRequested = false;
         // DEBUGGER VARIABLES
 
-        // ITCH VARIABLES
+        // TEST VARIABLES
         this.testFlagClicked = false;
-        // ITCH VARIABLES
+        this.testResults = [];
+        // TEST VARIABLES
     }
 
     // DEBUGGER METHODS
@@ -471,6 +472,15 @@ class Runtime extends EventEmitter {
         this.pauseRequested = true;
     }
     // DEBUGGER METHODS
+
+    // TEST METHODS
+    /**
+     * @returns {Array.<string>} - an array containing the test results.
+     */
+    getTestResults () {
+        return this.testResults;
+    }
+    // TEST METHODS
 
     /**
      * Width of the stage, in pixels.

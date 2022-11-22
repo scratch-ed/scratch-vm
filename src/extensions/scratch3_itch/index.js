@@ -324,7 +324,7 @@ class Scratch3ItchBlocks {
      */
     assert (args) {
         if (!args.ASSERT_CONDITION) {
-            alert('An assert failed');
+            this.runtime.testResults.push('An assert failed');
         }
     }
 
@@ -344,7 +344,7 @@ class Scratch3ItchBlocks {
      */
     assertWrong (args) {
         if (!args.ASSERT_CONDITION) {
-            alert(args.TEXT_WRONG);
+            this.runtime.testResults.push(args.TEXT_WRONG);
         }
     }
 
@@ -357,6 +357,7 @@ class Scratch3ItchBlocks {
         // TODO: fix: this implementation is flawed since it only works with 1 head block
         if (this.runtime.testFlagClicked) {
             this.runtime.testFlagClicked = false;
+            this.runtime.testResults = [];
             return true;
         }
         return false;
