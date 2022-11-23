@@ -8,6 +8,8 @@ const formatMessage = require('format-message');
 
 const sb3 = require('../../serialization/sb3');
 
+const Thread = require('../../engine/thread');
+
 const stageProperties = [
     'backdrop #',
     'backdrop name',
@@ -35,6 +37,7 @@ class Scratch3ItchBlocks {
          * @type {Runtime}
          */
         this.runtime = runtime;
+        this.testNames = {};
     }
 
     _getKeyList () {
@@ -67,11 +70,16 @@ class Scratch3ItchBlocks {
     _stringifyTargets (targets) {
         const result = [];
         for (const target of targets) {
-            if (target.sprite) {
-                const spriteJson = {sprite: {}};
-                for (const property of spriteProperties) {
-                    spriteJson.sprite[property] = this._getAttributeOf(target, property);
-                }
+            if (!target.isStage) {
+                const spriteJson = {};
+                spriteJson['x position'] = target.x;
+                spriteJson['y position'] = target.y;
+                spriteJson['direction'] = target.direction;
+                spriteJson['costume #'] = target.currentCostume + 1;
+                spriteJson['costume name'] = target.sprite.costumes[target.currentCostume].name;
+                spriteJson['size'] = target.size;
+                spriteJson['volume'] = target.volume;
+                spriteJson['name'] = target.sprite.name;
                 result.push(spriteJson);
             }
         }
@@ -107,6 +115,19 @@ class Scratch3ItchBlocks {
             }
         }
         return 0;
+    }
+
+    _getCurrentBlock () {
+        return this.runtime.threads.at(0).target.blocks.getBlock(this.runtime.threads.at(0).peekStack());
+    }
+
+    _getCurrentTestName () {
+        return this.testNames[this._getCurrentThread().topBlock];
+    }
+
+    _getCurrentThread () {
+        // TODO: when there are many threads this could perform badly
+        return this.runtime.threads.find(thread => thread.status === Thread.STATUS_RUNNING);
     }
 
     /**
@@ -227,9 +248,20 @@ class Scratch3ItchBlocks {
                     blockType: BlockType.HAT,
                     text: formatMessage({
                         id: 'startTestsLabel',
-                        default: 'Test flag clicked',
+                        default: 'When test flag clicked',
                         description: 'Label on the "Test flag clicked" block'
                     })
+                },
+                {
+                    opcode: 'setTestName',
+                    blockType: BlockType.COMMAND,
+                    text: 'Set test name to [TEST_NAME]',
+                    arguments: {
+                        TEST_NAME: {
+                            type: ArgumentType.STRING,
+                            default: ''
+                        }
+                    }
                 },
                 {
                     opcode: 'pressKey',
@@ -324,7 +356,9 @@ class Scratch3ItchBlocks {
      */
     assert (args) {
         if (!args.ASSERT_CONDITION) {
-            this.runtime.testResults.push('An assert failed');
+            this.runtime.testResults.push(`${this._getCurrentTestName()} failed`);
+            // stop the thread where the assert failed
+            this.runtime.threads.at(0).stopThisScript();
         }
     }
 
@@ -358,9 +392,18 @@ class Scratch3ItchBlocks {
         if (this.runtime.testFlagClicked) {
             this.runtime.testFlagClicked = false;
             this.runtime.testResults = [];
+            this.testNames = {};
             return true;
         }
         return false;
+    }
+
+    /**
+     * Implement setTestName.
+     * @param {object} args - the block's arguments.
+     */
+    setTestName (args) {
+        this.testNames[this._getCurrentThread().topBlock] = args.TEST_NAME;
     }
 
     /**
@@ -389,10 +432,7 @@ class Scratch3ItchBlocks {
         if (!args.STATE) return '';
 
         const savedState = JSON.parse(args.STATE);
-        // console.log(sb3.deserialize(savedState, new Runtime(), undefined, false));
-        // console.log(savedState);
-        const sprite = savedState.targets.find(target => target.name === args.OBJECT);
-        // console.log(sprite);
+        const sprite = savedState.find(target => target.name === args.OBJECT);
         if (sprite) {
             return this._getAttributeOf(sprite, args.PROPERTY);
         }
@@ -405,7 +445,7 @@ class Scratch3ItchBlocks {
      * @returns {string} string of a json that contains the runtime
      */
     currentState (args) {
-        return JSON.stringify(sb3.serialize(this.runtime));
+        return this._stringifyTargets(this.runtime.targets);
     }
 }
 
