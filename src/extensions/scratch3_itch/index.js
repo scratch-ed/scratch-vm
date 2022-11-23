@@ -40,96 +40,6 @@ class Scratch3ItchBlocks {
         this.testNames = {};
     }
 
-    _getKeyList () {
-        const keys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowRight', 'ArrowLeft'];
-        for (let i = 0; i < 26; i++) {
-            keys.push(String.fromCharCode(97 + i));
-        }
-        for (let i = 0; i < 10; i++) {
-            keys.push(i.toString());
-        }
-        return keys;
-    }
-
-    _getSpritesList () {
-        // todo: make complex list elements
-        return this.runtime.targets.map((target, _) => target.getName());
-    }
-
-    _getPropertiesList () {
-        // todo: different options when the selected sprite is a stage
-        // use: this.runtime.threads.at(0).peekStack() to know block
-        return spriteProperties;
-    }
-
-    /**
-     * _stringifyTargets.
-     * @param {Target[]} targets - list of the targets to stringify.
-     * @returns {string} value of the queried field
-     */
-    _stringifyTargets (targets) {
-        const result = [];
-        for (const target of targets) {
-            if (!target.isStage) {
-                const spriteJson = {};
-                spriteJson['x position'] = target.x;
-                spriteJson['y position'] = target.y;
-                spriteJson['direction'] = target.direction;
-                spriteJson['costume #'] = target.currentCostume + 1;
-                spriteJson['costume name'] = target.sprite.costumes[target.currentCostume].name;
-                spriteJson['size'] = target.size;
-                spriteJson['volume'] = target.volume;
-                spriteJson['name'] = target.sprite.name;
-                result.push(spriteJson);
-            }
-        }
-        return JSON.stringify(result);
-    }
-
-    /**
-     * get an attribute of a target that is a sprite or a stage.
-     * @param {RenderedTarget|object} target - the target.
-     * @param {string} property - the property name.
-     * @returns {number|*} property value
-     * @private
-     */
-    _getAttributeOf (target, property) {
-        if (target.isStage) {
-            switch (property) {
-            case 'background #': return target.currentCostume + 1;
-            case 'backdrop #': return target.currentCostume + 1;
-            case 'backdrop name':
-                return target.costumes[target.currentCostume].name;
-            case 'volume': return target.volume;
-            }
-        } else {
-            switch (property) {
-            case 'x position': return target.x;
-            case 'y position': return target.y;
-            case 'direction': return target.direction;
-            case 'costume #': return target.currentCostume + 1;
-            case 'costume name':
-                return target.costumes[target.currentCostume].name;
-            case 'size': return target.size;
-            case 'volume': return target.volume;
-            }
-        }
-        return 0;
-    }
-
-    _getCurrentBlock () {
-        return this.runtime.threads.at(0).target.blocks.getBlock(this.runtime.threads.at(0).peekStack());
-    }
-
-    _getCurrentTestName () {
-        return this.testNames[this._getCurrentThread().topBlock];
-    }
-
-    _getCurrentThread () {
-        // TODO: when there are many threads this could perform badly
-        return this.runtime.threads.find(thread => thread.status === Thread.STATUS_RUNNING);
-    }
-
     /**
      * @return {object} This extension's metadata.
      */
@@ -303,12 +213,12 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
-                    opcode: 'currentState',
+                    opcode: 'snapshot',
                     blockType: BlockType.REPORTER,
                     text: formatMessage({
-                        id: 'currentStateLabel',
-                        default: 'current state',
-                        description: 'Label on the "currentState" variable'
+                        id: 'snapshot',
+                        default: 'snapshot',
+                        description: 'Label on the "snapshot" variable'
                     }),
                     arguments: {}
                 }
@@ -348,6 +258,96 @@ class Scratch3ItchBlocks {
                 }
             }
         };
+    }
+
+    _getKeyList () {
+        const keys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowRight', 'ArrowLeft'];
+        for (let i = 0; i < 26; i++) {
+            keys.push(String.fromCharCode(97 + i));
+        }
+        for (let i = 0; i < 10; i++) {
+            keys.push(i.toString());
+        }
+        return keys;
+    }
+
+    _getSpritesList () {
+        // todo: make complex list elements
+        return this.runtime.targets.map((target, _) => target.getName());
+    }
+
+    _getPropertiesList () {
+        // todo: different options when the selected sprite is a stage
+        // use: this.runtime.threads.at(0).peekStack() to know block
+        return spriteProperties;
+    }
+
+    /**
+     * _stringifyTargets.
+     * @param {Target[]} targets - list of the targets to stringify.
+     * @returns {string} value of the queried field
+     */
+    _stringifyTargets (targets) {
+        const result = [];
+        for (const target of targets) {
+            if (!target.isStage) {
+                const spriteJson = {};
+                spriteJson['x position'] = target.x;
+                spriteJson['y position'] = target.y;
+                spriteJson['direction'] = target.direction;
+                spriteJson['costume #'] = target.currentCostume + 1;
+                spriteJson['costume name'] = target.sprite.costumes[target.currentCostume].name;
+                spriteJson['size'] = target.size;
+                spriteJson['volume'] = target.volume;
+                spriteJson['name'] = target.sprite.name;
+                result.push(spriteJson);
+            }
+        }
+        return JSON.stringify(result);
+    }
+
+    /**
+     * get an attribute of a target that is a sprite or a stage.
+     * @param {RenderedTarget|object} target - the target.
+     * @param {string} property - the property name.
+     * @returns {number|*} property value
+     * @private
+     */
+    _getAttributeOf (target, property) {
+        if (target.isStage) {
+            switch (property) {
+            case 'background #': return target.currentCostume + 1;
+            case 'backdrop #': return target.currentCostume + 1;
+            case 'backdrop name':
+                return target.costumes[target.currentCostume].name;
+            case 'volume': return target.volume;
+            }
+        } else {
+            switch (property) {
+            case 'x position': return target.x;
+            case 'y position': return target.y;
+            case 'direction': return target.direction;
+            case 'costume #': return target.currentCostume + 1;
+            case 'costume name':
+                return target.costumes[target.currentCostume].name;
+            case 'size': return target.size;
+            case 'volume': return target.volume;
+            }
+        }
+        return 0;
+    }
+
+    _getCurrentBlock () {
+        return this.runtime.threads.at(0).target.blocks.getBlock(this.runtime.threads.at(0).peekStack());
+    }
+
+    _getCurrentTestName () {
+        return this.testNames[this._getCurrentThread().topBlock];
+    }
+
+    _getCurrentThread () {
+        // TODO: when there are many threads this could perform badly
+        return this.runtime.threads.find(thread => thread.status === Thread.STATUS_RUNNING);
     }
 
     /**
@@ -440,11 +440,11 @@ class Scratch3ItchBlocks {
     }
 
     /**
-     * Implement currentState variable.
+     * Implement snapshot variable.
      * @param {object} args - the block's arguments.
      * @returns {string} string of a json that contains the runtime
      */
-    currentState (args) {
+    snapshot (args) {
         return this._stringifyTargets(this.runtime.targets);
     }
 }
