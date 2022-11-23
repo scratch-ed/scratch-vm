@@ -163,11 +163,12 @@ class Scratch3ItchBlocks {
                     })
                 },
                 {
-                    opcode: 'setTestName',
-                    blockType: BlockType.COMMAND,
-                    text: 'Set test name to [TEST_NAME]',
+                    opcode: 'groupName',
+                    blockType: BlockType.CONDITIONAL,
+                    branchCount: 1,
+                    text: 'Test group [GROUP_NAME]',
                     arguments: {
-                        TEST_NAME: {
+                        GROUP_NAME: {
                             type: ArgumentType.STRING,
                             default: ''
                         }
@@ -399,11 +400,13 @@ class Scratch3ItchBlocks {
     }
 
     /**
-     * Implement setTestName.
+     * Implement groupName.
      * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the util.
      */
-    setTestName (args) {
-        this.testNames[this._getCurrentThread().topBlock] = args.TEST_NAME;
+    groupName (args, util) {
+        this.testNames[this._getCurrentThread().topBlock] = args.GROUP_NAME;
+        util.startBranch(1, false);
     }
 
     /**
