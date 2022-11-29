@@ -10,6 +10,8 @@ const sb3 = require('../../serialization/sb3');
 
 const Thread = require('../../engine/thread');
 
+const TreeNode = require('./FeedbackTree');
+
 const stageProperties = [
     'backdrop #',
     'backdrop name',
@@ -37,6 +39,7 @@ class Scratch3ItchBlocks {
          * @type {Runtime}
          */
         this.runtime = runtime;
+        this.testGroupTrees = {}; // For each head block (thread) their corresponding feedback tree
         this.testNames = {};
     }
 
@@ -338,8 +341,12 @@ class Scratch3ItchBlocks {
         return 0;
     }
 
+    _getCurrentBlockId () {
+        return this._getCurrentThread().peekStack();
+    }
+
     _getCurrentBlock () {
-        return this.runtime.threads.at(0).target.blocks.getBlock(this.runtime.threads.at(0).peekStack());
+        return this._getCurrentThread().target.blocks.getBlock(this._getCurrentBlockId());
     }
 
     _getCurrentTestName () {
@@ -390,10 +397,12 @@ class Scratch3ItchBlocks {
      */
     startTests (args) {
         // TODO: fix: this implementation is flawed since it only works with 1 head block
+        // Probably with util.startHats() !!!!!!!!!
         if (this.runtime.testFlagClicked) {
             this.runtime.testFlagClicked = false;
             this.runtime.testResults = [];
             this.testNames = {};
+            this.testGroupTrees = {};
             return true;
         }
         return false;
@@ -405,8 +414,27 @@ class Scratch3ItchBlocks {
      * @param {BlockUtility} util - the util.
      */
     groupName (args, util) {
-        this.testNames[this._getCurrentThread().topBlock] = args.GROUP_NAME;
-        util.startBranch(1, false);
+        // first group block in this thread, add the FeedbackTree to this.testGroupTrees
+        if (!this.testGroupTrees[this._getCurrentThread().topBlock]) {
+            this.testGroupTrees[this._getCurrentThread().topBlock] = new TreeNode(0, 'rootGroup');
+        }
+
+        const tree = this.testGroupTrees[this._getCurrentThread().topBlock];
+
+        if (tree.peekParseStack().id === this._getCurrentBlockId()) {
+            tree.getParseStack().pop();
+            if (tree.getParseStack().length === 1) {
+                console.log('The final feedbacktree is: ', this.testGroupTrees[this._getCurrentThread().topBlock]);
+            }
+        } else {
+            // step into
+            // add the group to the tree
+            tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(), args.GROUP_NAME));
+
+            // Say it is a loop so this function is called again,
+            // but when it is called again do the first part of this if-else
+            util.startBranch(1, true);
+        }
     }
 
     /**
@@ -423,7 +451,7 @@ class Scratch3ItchBlocks {
         // const start = Date.now();
         // while (this._countNonEmptyStacks() > 1 && Date.now() - start < 1000) {}
 
-        // TODO: look at how broadcast and wait block is implemented
+        // TODO: look at how broadcast and wait block is implemented (in blocks dir somewhere)
     }
 
     /**
