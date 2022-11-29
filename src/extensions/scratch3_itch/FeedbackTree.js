@@ -8,6 +8,7 @@ class TreeNode {
         this.value = value;
         this.parent = parent;
         this.children = [];
+        this.groupPassed = true;
     }
 
     insert (id, value) {
@@ -28,6 +29,13 @@ class TreeNode {
             return this.parseStack;
         }
         return this.parent.getParseStack();
+    }
+
+    groupFailed () {
+        this.groupPassed = false;
+        if (this.parent) {
+            this.parent.groupFailed();
+        }
     }
 
     traverse () {

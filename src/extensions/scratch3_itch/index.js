@@ -341,6 +341,10 @@ class Scratch3ItchBlocks {
         return 0;
     }
 
+    _getCurrentTestGroupTree () {
+        return this.testGroupTrees[this._getCurrentThread().topBlock];
+    }
+
     _getCurrentBlockId () {
         return this._getCurrentThread().peekStack();
     }
@@ -364,9 +368,10 @@ class Scratch3ItchBlocks {
      */
     assert (args) {
         if (!args.ASSERT_CONDITION) {
-            this.runtime.testResults.push(`${this._getCurrentTestName()} failed`);
+            this._getCurrentTestGroupTree().peekParseStack()
+                .groupFailed();
             // stop the thread where the assert failed
-            this.runtime.threads.at(0).stopThisScript();
+            // this.runtime.threads.at(0).stopThisScript();
         }
     }
 
@@ -385,6 +390,7 @@ class Scratch3ItchBlocks {
      * @param {object} args - the block's arguments.
      */
     assertWrong (args) {
+        // TODO: think about the assertWrong functionality
         if (!args.ASSERT_CONDITION) {
             this.runtime.testResults.push(args.TEXT_WRONG);
         }
@@ -415,16 +421,17 @@ class Scratch3ItchBlocks {
      */
     groupName (args, util) {
         // first group block in this thread, add the FeedbackTree to this.testGroupTrees
-        if (!this.testGroupTrees[this._getCurrentThread().topBlock]) {
+        if (!this._getCurrentTestGroupTree()) {
             this.testGroupTrees[this._getCurrentThread().topBlock] = new TreeNode(0, 'rootGroup');
         }
 
-        const tree = this.testGroupTrees[this._getCurrentThread().topBlock];
+        const tree = this._getCurrentTestGroupTree();
 
         if (tree.peekParseStack().id === this._getCurrentBlockId()) {
             tree.getParseStack().pop();
             if (tree.getParseStack().length === 1) {
                 console.log('The final feedbacktree is: ', this.testGroupTrees[this._getCurrentThread().topBlock]);
+                // todo: pass feedback trees to runtime
             }
         } else {
             // step into
