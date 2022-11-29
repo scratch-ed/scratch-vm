@@ -418,7 +418,7 @@ class Runtime extends EventEmitter {
 
         // TEST VARIABLES
         this.testFlagClicked = false;
-        this.testResults = [];
+        this.feedbackTrees = {}; // A dict of feedback trees, each tree belongs to 1 test thread.
         // TEST VARIABLES
     }
 
@@ -478,7 +478,7 @@ class Runtime extends EventEmitter {
      * @returns {Array.<string>} - an array containing the test results.
      */
     getTestResults () {
-        return this.testResults;
+        return this.feedbackTrees;
     }
     // TEST METHODS
 

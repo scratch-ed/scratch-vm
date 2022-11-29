@@ -39,8 +39,6 @@ class Scratch3ItchBlocks {
          * @type {Runtime}
          */
         this.runtime = runtime;
-        this.testGroupTrees = {}; // For each head block (thread) their corresponding feedback tree
-        this.testNames = {};
     }
 
     /**
@@ -341,8 +339,8 @@ class Scratch3ItchBlocks {
         return 0;
     }
 
-    _getCurrentTestGroupTree () {
-        return this.testGroupTrees[this._getCurrentThread().topBlock];
+    _getCurrentFeedbackTree () {
+        return this.runtime.feedbackTrees[this._getCurrentThread().topBlock];
     }
 
     _getCurrentBlockId () {
@@ -353,9 +351,6 @@ class Scratch3ItchBlocks {
         return this._getCurrentThread().target.blocks.getBlock(this._getCurrentBlockId());
     }
 
-    _getCurrentTestName () {
-        return this.testNames[this._getCurrentThread().topBlock];
-    }
 
     _getCurrentThread () {
         // TODO: when there are many threads this could perform badly
@@ -368,7 +363,7 @@ class Scratch3ItchBlocks {
      */
     assert (args) {
         if (!args.ASSERT_CONDITION) {
-            this._getCurrentTestGroupTree().peekParseStack()
+            this._getCurrentFeedbackTree().peekParseStack()
                 .groupFailed();
             // stop the thread where the assert failed
             // this.runtime.threads.at(0).stopThisScript();
@@ -407,8 +402,7 @@ class Scratch3ItchBlocks {
         if (this.runtime.testFlagClicked) {
             this.runtime.testFlagClicked = false;
             this.runtime.testResults = [];
-            this.testNames = {};
-            this.testGroupTrees = {};
+            this.runtime.feedbackTrees = {};
             return true;
         }
         return false;
@@ -420,17 +414,17 @@ class Scratch3ItchBlocks {
      * @param {BlockUtility} util - the util.
      */
     groupName (args, util) {
-        // first group block in this thread, add the FeedbackTree to this.testGroupTrees
-        if (!this._getCurrentTestGroupTree()) {
-            this.testGroupTrees[this._getCurrentThread().topBlock] = new TreeNode(0, 'rootGroup');
+        // first group block in this thread, add the FeedbackTree to this.runtime.feedbackTrees
+        if (!this._getCurrentFeedbackTree()) {
+            this.runtime.feedbackTrees[this._getCurrentThread().topBlock] = new TreeNode(0, 'rootGroup');
         }
 
-        const tree = this._getCurrentTestGroupTree();
+        const tree = this._getCurrentFeedbackTree();
 
         if (tree.peekParseStack().id === this._getCurrentBlockId()) {
             tree.getParseStack().pop();
             if (tree.getParseStack().length === 1) {
-                console.log('The final feedbacktree is: ', this.testGroupTrees[this._getCurrentThread().topBlock]);
+                console.log('The final feedbacktree is: ', this.runtime.feedbackTrees[this._getCurrentThread().topBlock]);
                 // todo: pass feedback trees to runtime
             }
         } else {
