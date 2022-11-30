@@ -114,6 +114,37 @@ class _StackFrame {
             _stackFrameFreeList.push(stackFrame.reset());
         }
     }
+
+    serialize () {
+        return {
+            isLoop: this.isLoop,
+            warpMode: this.warpMode,
+            // let's hope the following serializes
+            justReported: this.justReported,
+            reporting: this.reporting,
+            // let's hope the following serializes
+            reported: this.reported,
+            waitingReporter: this.waitingReporter,
+            params: this.params,
+            executionContext: this.executionContext
+        };
+    }
+
+    static deserialize (object) {
+        const newStackFrame = new _StackFrame();
+        newStackFrame.isLoop = object.isLoop;
+        newStackFrame.warpMode = object.warpMode;
+        // let's hope the following deserializes
+        newStackFrame.justReported = object.justReported;
+        newStackFrame.reporting = object.reporting;
+        // let's hope the following deserializes
+        newStackFrame.reported = object.reported;
+        newStackFrame.waitingReporter = object.waitingReporter;
+        newStackFrame.params = object.params;
+        newStackFrame.executionContext = object.executionContext;
+
+        return newStackFrame;
+    }
 }
 
 /**
@@ -397,6 +428,59 @@ class Thread {
             if (--callCount < 0) return false;
         }
         return false;
+    }
+
+    /**
+     * Serialize the thread to be able to restore this later
+     * @return {string} The JSON string representation of the Thread
+     */
+    toJSON () {
+        return JSON.stringify({
+            topBlock: this.topBlock,
+            stack: this.stack, // will stringify
+            stackFrames: this.stackFrames.map(stackFrame => stackFrame.serialize()),
+            status: this.status,
+            isKilled: this.isKilled,
+            targetId: this.target.id, // use id
+            // this.blockContainer left out, is (hopefully always) this.target.blocks
+            requestScriptGlowInFrame: this.requestScriptGlowInFrame,
+            blockGlowInFrame: this.blockGlowInFrame,
+            // warpTimer: this.warpTimer,
+
+            // let's hope the following serializes
+            justReported: this.justReported
+        });
+    }
+
+    /**
+     * Restores a thread from JSON string representation (by toJSON())
+     * A list of targets has to be provided because a thread has a reference
+     * to a target. In the JSON the id of the target is saved.
+     * @param {string} json The JSON string
+     * @param {Array<Target>} targets The list of targets
+     * @return {Thread} A new Thread
+     */
+    static restoreJSON (json, targets) {
+        const newThread = new Thread(null);
+        json = JSON.parse(json);
+
+        newThread.topBlock = json.topBlock;
+        newThread.stack = json.stack;
+        newThread.stackFrames = json.stackFrames.map(stackFrame => _StackFrame.deserialize(stackFrame));
+        newThread.status = json.status;
+        newThread.isKilled = json.isKilled;
+        newThread.target = targets.find(target => target.id === json.targetId); // use id
+        if (newThread.target && newThread.target.blocks) {
+            newThread.blockContainer = newThread.target.blocks; // this is hopefully always this.target.blocks
+        }
+        newThread.requestScriptGlowInFrame = json.requestScriptGlowInFrame;
+        newThread.blockGlowInFrame = json.blockGlowInFrame;
+        // warpTimer: this.warpTimer,
+
+        // let's hope the following deserializes
+        newThread.justReported = json.justReported;
+
+        return newThread;
     }
 }
 
