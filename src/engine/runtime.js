@@ -1702,6 +1702,19 @@ class Runtime extends EventEmitter {
     // -----------------------------------------------------------------------------
 
     /**
+     * Restores a thread that was previously in the threads of this runtime
+     * The target that was associated with the thread (Thread.target),
+     * should still be in the target list of this runtime
+     * @param threadJson A JSON string representing the thread, as created by Thread.toJSON()
+     * @return {Thread} The newly created thread
+     */
+    restoreThread (threadJson) {
+        const thread = Thread.restoreJSON(threadJson, this.targets);
+        this.threads.push(thread);
+        return thread;
+    }
+
+    /**
      * Create a thread and push it to the list of threads.
      * @param {!string} id ID of block that starts the stack.
      * @param {!Target} target Target to run thread on.
