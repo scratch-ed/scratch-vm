@@ -159,7 +159,7 @@ class Scratch3ItchBlocks {
                     blockType: BlockType.HAT,
                     text: formatMessage({
                         id: 'startTestsLabel',
-                        default: 'When test flag clicked',
+                        default: 'When tests started',
                         description: 'Label on the "Test flag clicked" block'
                     })
                 },
