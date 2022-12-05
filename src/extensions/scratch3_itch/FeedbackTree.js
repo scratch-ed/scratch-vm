@@ -1,18 +1,22 @@
+const {v4} = require('uuid');
+
 class TreeNode {
-    constructor (id, value, parent) {
+    constructor (blockId, value, parent) {
         if (!parent) {
             this.parseStack = [];
             this.parseStack.push(this);
         }
-        this.id = id;
+        // id of the feedback block, the feedback block may be in a loop, and thus this id might not be unique
+        this.blockId = blockId;
         this.value = value;
         this.parent = parent;
         this.children = [];
         this.groupPassed = true;
+        this.id = v4(); // unique id for this node
     }
 
-    insert (id, value) {
-        const node = new TreeNode(id, value, this);
+    insert (blockId, value) {
+        const node = new TreeNode(blockId, value, this);
         this.children.push(node);
         return this.children[this.children.length - 1];
     }

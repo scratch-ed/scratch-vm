@@ -6,8 +6,6 @@ const BlockType = require('../../extension-support/block-type');
 // ...or VM dependencies:
 const formatMessage = require('format-message');
 
-const sb3 = require('../../serialization/sb3');
-
 const Thread = require('../../engine/thread');
 
 const TreeNode = require('./FeedbackTree');
@@ -421,11 +419,10 @@ class Scratch3ItchBlocks {
 
         const tree = this._getCurrentFeedbackTree();
 
-        if (tree.peekParseStack().id === this._getCurrentBlockId()) {
+        if (tree.peekParseStack().blockId === this._getCurrentBlockId()) {
             tree.getParseStack().pop();
             if (tree.getParseStack().length === 1) {
                 console.log('The final feedbacktree is: ', this.runtime.feedbackTrees[this._getCurrentThread().topBlock]);
-                // todo: pass feedback trees to runtime
             }
         } else {
             // step into
