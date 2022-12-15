@@ -397,6 +397,12 @@ class Scratch3ItchBlocks {
     startTests (args) {
         // TODO: fix: this implementation is flawed since it only works with 1 head block
         // Probably with util.startHats() !!!!!!!!!
+
+        // usefull snippet from judge code:
+        // context.vm!.runtime.startHats('event_whenkeypressed', {
+        //     KEY_OPTION: scratchKey,
+        // });
+
         if (this.runtime.testFlagClicked) {
             this.runtime.testFlagClicked = false;
             this.runtime.testResults = [];
