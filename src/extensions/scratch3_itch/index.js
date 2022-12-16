@@ -9,6 +9,12 @@ const formatMessage = require('format-message');
 const Thread = require('../../engine/thread');
 
 const TreeNode = require('./FeedbackTree');
+//
+// const judge = require('@ftrprf/judge-core');
+// // const WhenPressKeyAction = require('@ftrprf/judge-core/src/actions/WhenPressKeyAction');
+//
+// // const ScheduledEvent = require('@ftrprf/judge-core/src/');
+// import {ScheduledEvent} from '@ftrprf/judge-core/src/scheduler/scheduled-event.ts';
 
 const stageProperties = [
     'backdrop #',
@@ -37,6 +43,16 @@ class Scratch3ItchBlocks {
          * @type {Runtime}
          */
         this.runtime = runtime;
+        // console.log(judge.createContextWithVm);
+        // console.log(ScheduledEvent);
+        //
+        // this.context = judge.createContextWithVm(this.runtime).then(context => {
+        //     this.context = context;
+        //     console.log("#######################################");
+        //     console.log(this.context);
+        // });
+
+        // TODO: user this.runtime.on(...) to react to test flag press
     }
 
     /**
@@ -410,6 +426,8 @@ class Scratch3ItchBlocks {
             return true;
         }
         return false;
+
+        // the BlockType could probably be EVENT? This blocktype executes when a certain emit is done
     }
 
     /**
@@ -418,6 +436,7 @@ class Scratch3ItchBlocks {
      * @param {BlockUtility} util - the util.
      */
     groupName (args, util) {
+        // TODO: maybe use util.stackframe to keep "loop" state instead of using blockId?
         // first group block in this thread, add the FeedbackTree to this.runtime.feedbackTrees
         if (!this._getCurrentFeedbackTree()) {
             this.runtime.feedbackTrees[this._getCurrentThread().topBlock] = new TreeNode(0, 'rootGroup');
@@ -444,10 +463,70 @@ class Scratch3ItchBlocks {
     /**
      * Implement pressKey.
      * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the util.
      */
-    pressKey (args) {
-        this.runtime.ioDevices.keyboard.postData({key: args.KEY, isDown: true});
-        this.runtime.ioDevices.keyboard.postData({key: args.KEY, isDown: false});
+    pressKey (args, util) {
+        // Have we run before, starting threads?
+        if (!util.stackFrame.startedThreads) {
+            // No - start hats for this broadcast.
+            const scratchKey = this.runtime.ioDevices.keyboard._keyStringToScratchKey(
+                args.KEY,
+            );
+
+            if (scratchKey === '') {
+                throw new Error(`Unknown key press: '${args.KEY}'`);
+            }
+
+            // a copy of the current thread is taken because the startHats overwrites this somehow (with a wrong value)
+            const threadCopy = util.thread;
+            const specificKeyThreads = this.runtime.startHats('event_whenkeypressed', {
+                KEY_OPTION: scratchKey
+            });
+            // correct the util.thread
+            util.thread = threadCopy;
+            const anyKeyThreads = this.runtime.startHats('event_whenkeypressed', {
+                KEY_OPTION: 'any'
+            });
+            // correct the util.thread
+            util.thread = threadCopy;
+
+            util.stackFrame.startedThreads = specificKeyThreads.concat(anyKeyThreads);
+
+            if (util.stackFrame.startedThreads.length === 0) {
+                // Nothing was started.
+                return;
+            }
+        }
+        // We've run before; check if the wait is still going on.
+        const instance = this;
+        // Scratch 2 considers threads to be waiting if they are still in
+        // runtime.threads. Threads that have run all their blocks, or are
+        // marked done but still in runtime.threads are still considered to
+        // be waiting.
+        const waiting = util.stackFrame.startedThreads
+            .some(thread => instance.runtime.threads.indexOf(thread) !== -1);
+        if (waiting) {
+            // If all threads are waiting for the next tick or later yield
+            // for a tick as well. Otherwise yield until the next loop of
+            // the threads.
+            if (
+                util.stackFrame.startedThreads
+                    .every(thread => instance.runtime.isWaitingThread(thread))
+            ) {
+                util.yieldTick();
+            } else {
+                util.yield();
+            }
+        }
+
+
+        // ScheduledEvent.pressKey(args.KEY).run(judge.createContextFromVm(this.runtime))
+        //     .then(() => {
+        //         console.log('pressKey done');
+        //     });
+
+        // this.runtime.ioDevices.keyboard.postData({key: args.KEY, isDown: true});
+        // this.runtime.ioDevices.keyboard.postData({key: args.KEY, isDown: false});
         // wait for the test thread to be the only thread or wait maximum 1 sec
         // The test thread should wait here until all other threads have completed.
 
