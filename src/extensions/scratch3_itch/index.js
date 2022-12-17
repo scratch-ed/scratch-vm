@@ -369,31 +369,26 @@ class Scratch3ItchBlocks {
         return 0;
     }
 
-    _getCurrentFeedbackTree () {
-        return this.runtime.feedbackTrees[this._getCurrentThread().topBlock];
+    _getCurrentFeedbackTree (util) {
+        return this.runtime.feedbackTrees[util.thread.topBlock];
     }
 
-    _getCurrentBlockId () {
-        return this._getCurrentThread().peekStack();
+    _getCurrentBlockId (util) {
+        return util.thread.peekStack();
     }
 
-    _getCurrentBlock () {
-        return this._getCurrentThread().target.blocks.getBlock(this._getCurrentBlockId());
-    }
-
-
-    _getCurrentThread () {
-        // TODO: when there are many threads this could perform badly
-        return this.runtime.threads.find(thread => thread.status === Thread.STATUS_RUNNING);
+    _getCurrentBlock (util) {
+        return util.thread.target.blocks.getBlock(this._getCurrentBlockId(util));
     }
 
     /**
      * Implement assert.
      * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the block utility object.
      */
-    assert (args) {
+    assert (args, util) {
         if (!args.ASSERT_CONDITION) {
-            this._getCurrentFeedbackTree().peekParseStack()
+            this._getCurrentFeedbackTree(util).peekParseStack()
                 .groupFailed();
             // stop the thread where the assert failed
             // this.runtime.threads.at(0).stopThisScript();
@@ -454,21 +449,21 @@ class Scratch3ItchBlocks {
     groupName (args, util) {
         // TODO: maybe use util.stackframe to keep "loop" state instead of using blockId?
         // first group block in this thread, add the FeedbackTree to this.runtime.feedbackTrees
-        if (!this._getCurrentFeedbackTree()) {
-            this.runtime.feedbackTrees[this._getCurrentThread().topBlock] = new TreeNode(0, 'rootGroup');
+        if (!this._getCurrentFeedbackTree(util)) {
+            this.runtime.feedbackTrees[util.thread.topBlock] = new TreeNode(0, 'rootGroup');
         }
 
-        const tree = this._getCurrentFeedbackTree();
+        const tree = this._getCurrentFeedbackTree(util);
 
-        if (tree.peekParseStack().blockId === this._getCurrentBlockId()) {
+        if (tree.peekParseStack().blockId === this._getCurrentBlockId(util)) {
             tree.getParseStack().pop();
             if (tree.getParseStack().length === 1) {
-                console.log('The final feedbacktree is: ', this.runtime.feedbackTrees[this._getCurrentThread().topBlock]);
+                console.log('The final feedbacktree is: ', this.runtime.feedbackTrees[util.thread.topBlock]);
             }
         } else {
             // step into
             // add the group to the tree
-            tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(), args.GROUP_NAME));
+            tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.GROUP_NAME));
 
             // Say it is a loop so this function is called again,
             // but when it is called again do the first part of this if-else
