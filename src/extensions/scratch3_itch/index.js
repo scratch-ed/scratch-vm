@@ -66,8 +66,8 @@ class Scratch3ItchBlocks {
             id: 'itch',
 
             // Core extensions only: override the default extension block colors.
-            color1: '#8a0202',
-            color2: '#640101',
+            color1: '#be1e2d',
+            color2: '#9e1824',
 
             // Optional: the human-readable name of this extension as string.
             // This and any other string to be displayed in the Scratch UI may either be
