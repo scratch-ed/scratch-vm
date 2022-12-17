@@ -146,25 +146,21 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
-                    opcode: 'assertWrong',
+                    opcode: 'namedAssert',
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: 'assertWrongLabel',
-                        default: 'Assert [ASSERT_CONDITION] Wrong: [TEXT_WRONG]',
-                        description: 'Label on the "assertWrong" block'
+                        id: 'namedAssertLabel',
+                        default: 'Assert [ASSERT_CONDITION] named [NAME]',
+                        description: 'Label on the "namedAssert" block'
                     }),
                     arguments: {
+                        NAME: {
+                            type: ArgumentType.STRING,
+                            default: 'Wrong'
+                        },
                         ASSERT_CONDITION: {
                             type: ArgumentType.BOOLEAN,
                             default: false
-                        },
-                        TEXT_WRONG: {
-                            type: ArgumentType.STRING,
-                            default: formatMessage({
-                                id: 'itch.TEXT_WRONG_default',
-                                defaultMessage: 'An assert was wrong',
-                                description: 'Default for "TEXT_WRONG" argument of "itch.assertWrong"'
-                            })
                         }
                     }
                 },
@@ -221,7 +217,7 @@ class Scratch3ItchBlocks {
                         }
                     }
                 },
-                {
+                {   // TODO: change name to querySnapshot
                     opcode: 'queryState',
                     blockType: BlockType.REPORTER,
                     text: formatMessage({
@@ -395,25 +391,20 @@ class Scratch3ItchBlocks {
         }
     }
 
-    _countNonEmptyStacks () {
-        let count = 0;
-        this.runtime.threads.forEach(thread => {
-            if (thread.stack.length) {
-                count++;
-            }
-        });
-        return count;
-    }
-
     /**
-     * Implement assertWrong.
+     * Implement namedAssert.
      * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the block utility object.
      */
-    assertWrong (args) {
-        // TODO: think about the assertWrong functionality
+    namedAssert (args, util) {
+        const tree = this._getCurrentFeedbackTree(util);
+        // create a new node in the feedback tree and push it to the parseStack
+        tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.NAME));
         if (!args.ASSERT_CONDITION) {
-            this.runtime.testResults.push(args.TEXT_WRONG);
+            tree.peekParseStack().groupFailed();
         }
+        // a named assert is a leaf (has no children), so pop immediately from the parseStack
+        tree.getParseStack().pop();
     }
 
     /**
@@ -461,7 +452,7 @@ class Scratch3ItchBlocks {
             tree.getParseStack().pop();
         } else {
             // step into
-            // add the group to the tree
+            // create a new node (group) in the feedback tree and push it to the parseStack
             tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.GROUP_NAME));
 
             // Say it is a loop so this function is called again,

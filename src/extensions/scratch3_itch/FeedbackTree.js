@@ -7,7 +7,7 @@ class TreeNode {
             // pushed when encountered, popped when finished. This stack is used to build the tree.
             // This stack is shared by all nodes in the tree and the root node is the only one keeping a pointer to it.
             this.parseStack = [];
-            this.parseStack.push(this); // a new node is constructed => push it on the parseStack.
+            this.parseStack.push(this); // the root node is pushed to the stack when it is created.
         }
         // id of the feedback block, the feedback block may be in a loop (i.e repeat block),
         // and thus this id might not be unique
