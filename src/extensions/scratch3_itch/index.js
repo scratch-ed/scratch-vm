@@ -456,10 +456,9 @@ class Scratch3ItchBlocks {
         const tree = this._getCurrentFeedbackTree(util);
 
         if (tree.peekParseStack().blockId === this._getCurrentBlockId(util)) {
+            // step out
+            // pop the current group from the parse stack
             tree.getParseStack().pop();
-            if (tree.getParseStack().length === 1) {
-                console.log('The final feedbacktree is: ', this.runtime.feedbackTrees[util.thread.topBlock]);
-            }
         } else {
             // step into
             // add the group to the tree
