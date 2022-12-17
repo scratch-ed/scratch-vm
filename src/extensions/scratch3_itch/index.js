@@ -43,16 +43,17 @@ class Scratch3ItchBlocks {
          * @type {Runtime}
          */
         this.runtime = runtime;
-        // console.log(judge.createContextWithVm);
-        // console.log(ScheduledEvent);
-        //
-        // this.context = judge.createContextWithVm(this.runtime).then(context => {
-        //     this.context = context;
-        //     console.log("#######################################");
-        //     console.log(this.context);
-        // });
 
-        // TODO: user this.runtime.on(...) to react to test flag press
+        // activate the startTests hat block when 'PROJECT_TEST_START' is emitted.
+        this.runtime.on('PROJECT_TESTS_START', () => {
+            const startedThreads = this.runtime.startHats('itch_startTests');
+
+            // for each restarted thread, create a new feedback tree
+            for (const thread of startedThreads) {
+                // (re)initialise the feedback tree
+                this.runtime.feedbackTrees[thread.topBlock] = new TreeNode(0, 'rootGroup');
+            }
+        });
     }
 
     /**
@@ -166,7 +167,8 @@ class Scratch3ItchBlocks {
                 },
                 {
                     opcode: 'startTests',
-                    blockType: BlockType.HAT,
+                    blockType: BlockType.EVENT,
+                    isEdgeActivated: false, // undocumented option that is used on line 1234 of src/engine/runtime.js
                     text: formatMessage({
                         id: 'startTestsLabel',
                         default: 'When tests started',
@@ -412,25 +414,6 @@ class Scratch3ItchBlocks {
      * @param {object} args - the block's arguments.
      * @returns {boolean} true if the tests should start
      */
-    startTests (args) {
-        // TODO: fix: this implementation is flawed since it only works with 1 head block
-        // Probably with util.startHats() !!!!!!!!!
-
-        // usefull snippet from judge code:
-        // context.vm!.runtime.startHats('event_whenkeypressed', {
-        //     KEY_OPTION: scratchKey,
-        // });
-
-        if (this.runtime.testFlagClicked) {
-            this.runtime.testFlagClicked = false;
-            this.runtime.testResults = [];
-            this.runtime.feedbackTrees = {};
-            return true;
-        }
-        return false;
-
-        // the BlockType could probably be EVENT? This blocktype executes when a certain emit is done
-    }
 
     /**
      * Implement groupName.
@@ -439,7 +422,7 @@ class Scratch3ItchBlocks {
      */
     groupName (args, util) {
         // TODO: maybe use util.stackframe to keep "loop" state instead of using blockId?
-        // first group block in this thread, add the FeedbackTree to this.runtime.feedbackTrees
+        // add root node to the feedback tree if it does not exist yet.
         if (!this._getCurrentFeedbackTree(util)) {
             this.runtime.feedbackTrees[util.thread.topBlock] = new TreeNode(0, 'rootGroup');
         }
@@ -545,10 +528,9 @@ class Scratch3ItchBlocks {
 
     /**
      * Implement snapshot variable.
-     * @param {object} args - the block's arguments.
      * @returns {string} string of a json that contains the runtime
      */
-    snapshot (args) {
+    snapshot () {
         return this._stringifyTargets(this.runtime.targets);
     }
 }

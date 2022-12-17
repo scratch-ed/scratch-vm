@@ -573,8 +573,7 @@ class Runtime extends EventEmitter {
     }
 
     /**
-     * Event name when the project is started (threads may not necessarily be
-     * running).
+     * Event name when the tests are started.
      * @const {string}
      */
     static get PROJECT_TESTS_START () {
