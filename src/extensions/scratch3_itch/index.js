@@ -206,6 +206,22 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
+                    opcode: 'pressKeyAndWait',
+                    blockType: BlockType.COMMAND,
+
+                    text: formatMessage({
+                        id: 'pressKeyAndWaitLabel',
+                        default: 'Press [KEY] key and wait',
+                        description: 'Label on the "pressKeyAndWait" block'
+                    }),
+                    arguments: {
+                        KEY: {
+                            type: ArgumentType.STRING,
+                            menu: 'keys'
+                        }
+                    }
+                },
+                {
                     opcode: 'queryState',
                     blockType: BlockType.REPORTER,
                     text: formatMessage({
@@ -463,9 +479,28 @@ class Scratch3ItchBlocks {
     /**
      * Implement pressKey.
      * @param {object} args - the block's arguments.
+     */
+    pressKey (args) {
+        const scratchKey = this.runtime.ioDevices.keyboard._keyStringToScratchKey(
+            args.KEY,
+        );
+        if (scratchKey === '') {
+            throw new Error(`Unknown key press: '${args.KEY}'`);
+        }
+        this.runtime.startHats('event_whenkeypressed', {
+            KEY_OPTION: scratchKey
+        });
+        this.runtime.startHats('event_whenkeypressed', {
+            KEY_OPTION: 'any'
+        });
+    }
+
+    /**
+     * Implement pressKeyAndWait.
+     * @param {object} args - the block's arguments.
      * @param {BlockUtility} util - the util.
      */
-    pressKey (args, util) {
+    pressKeyAndWait (args, util) {
         // Have we run before, starting threads?
         if (!util.stackFrame.startedThreads) {
             // No - start hats for this broadcast.
@@ -518,23 +553,6 @@ class Scratch3ItchBlocks {
                 util.yield();
             }
         }
-
-
-        // ScheduledEvent.pressKey(args.KEY).run(judge.createContextFromVm(this.runtime))
-        //     .then(() => {
-        //         console.log('pressKey done');
-        //     });
-
-        // this.runtime.ioDevices.keyboard.postData({key: args.KEY, isDown: true});
-        // this.runtime.ioDevices.keyboard.postData({key: args.KEY, isDown: false});
-        // wait for the test thread to be the only thread or wait maximum 1 sec
-        // The test thread should wait here until all other threads have completed.
-
-        // does not wait, because this function is 1 unit.
-        // const start = Date.now();
-        // while (this._countNonEmptyStacks() > 1 && Date.now() - start < 1000) {}
-
-        // TODO: look at how broadcast and wait block is implemented (in blocks dir somewhere)
     }
 
     /**
