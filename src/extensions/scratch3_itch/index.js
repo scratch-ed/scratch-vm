@@ -293,7 +293,7 @@ class Scratch3ItchBlocks {
     }
 
     _getKeyList () {
-        const keys = [' ', 'ArrowUp', 'ArrowDown', 'ArrowRight', 'ArrowLeft'];
+        const keys = ['space', 'up arrow', 'down arrow', 'right arrow', 'left arrow'];
         for (let i = 0; i < 26; i++) {
             keys.push(String.fromCharCode(97 + i));
         }
@@ -481,14 +481,8 @@ class Scratch3ItchBlocks {
      * @param {object} args - the block's arguments.
      */
     pressKey (args) {
-        const scratchKey = this.runtime.ioDevices.keyboard._keyStringToScratchKey(
-            args.KEY,
-        );
-        if (scratchKey === '') {
-            throw new Error(`Unknown key press: '${args.KEY}'`);
-        }
         this.runtime.startHats('event_whenkeypressed', {
-            KEY_OPTION: scratchKey
+            KEY_OPTION: args.KEY
         });
         this.runtime.startHats('event_whenkeypressed', {
             KEY_OPTION: 'any'
@@ -504,18 +498,11 @@ class Scratch3ItchBlocks {
         // Have we run before, starting threads?
         if (!util.stackFrame.startedThreads) {
             // No - start hats for this broadcast.
-            const scratchKey = this.runtime.ioDevices.keyboard._keyStringToScratchKey(
-                args.KEY,
-            );
-
-            if (scratchKey === '') {
-                throw new Error(`Unknown key press: '${args.KEY}'`);
-            }
 
             // a copy of the current thread is taken because the startHats overwrites this somehow (with a wrong value)
             const threadCopy = util.thread;
             const specificKeyThreads = this.runtime.startHats('event_whenkeypressed', {
-                KEY_OPTION: scratchKey
+                KEY_OPTION: args.KEY
             });
             // correct the util.thread
             util.thread = threadCopy;
