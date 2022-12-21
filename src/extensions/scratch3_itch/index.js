@@ -142,7 +142,7 @@ class Scratch3ItchBlocks {
                             type: ArgumentType.BOOLEAN,
 
                             // Optional: the default value of the argument
-                            default: false
+                            defaultValue: false
                         }
                     }
                 },
@@ -157,11 +157,11 @@ class Scratch3ItchBlocks {
                     arguments: {
                         NAME: {
                             type: ArgumentType.STRING,
-                            default: 'Wrong'
+                            defaultValue: ' '
                         },
                         ASSERT_CONDITION: {
                             type: ArgumentType.BOOLEAN,
-                            default: false
+                            defaultValue: false
                         }
                     }
                 },
@@ -183,7 +183,7 @@ class Scratch3ItchBlocks {
                     arguments: {
                         GROUP_NAME: {
                             type: ArgumentType.STRING,
-                            default: ''
+                            defaultValue: ' '
                         }
                     }
                 },
@@ -238,7 +238,8 @@ class Scratch3ItchBlocks {
                             menu: 'sprites'
                         },
                         STATE: {
-                            type: ArgumentType.STRING
+                            type: ArgumentType.STRING,
+                            defaultValue: ' '
                         }
                     }
                 },
