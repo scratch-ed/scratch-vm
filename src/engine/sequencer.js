@@ -237,10 +237,12 @@ class Sequencer {
                 // Increment the number of times execute is called.
                 this.runtime.profiler.increment(executeProfilerId);
             }
+
+            let ops;
             if (thread.target === null) {
                 this.retireThread(thread);
             } else {
-                execute(this, thread);
+                ops = execute(this, thread);
             }
 
             const pauseRequested = this.runtime.pauseRequested;
@@ -260,9 +262,15 @@ class Sequencer {
                 // A promise was returned by the primitive. Yield the thread
                 // until the promise resolves. Promise resolution should reset
                 // thread.status to Thread.STATUS_RUNNING.
+                if (ops) {
+                    this.runtime.emit('OPS_EXECUTED', ops);
+                }
                 return;
             } else if (thread.status === Thread.STATUS_YIELD_TICK) {
                 // stepThreads will reset the thread to Thread.STATUS_RUNNING
+                if (ops) {
+                    this.runtime.emit('OPS_EXECUTED', ops);
+                }
                 return;
             }
 
@@ -278,6 +286,9 @@ class Sequencer {
                 if (thread.stack.length === 0) {
                     // No more stack to run!
                     thread.status = Thread.STATUS_DONE;
+                    if (ops) {
+                        this.runtime.emit('OPS_EXECUTED', ops);
+                    }
                     return;
                 }
 
@@ -292,6 +303,9 @@ class Sequencer {
                     if (pauseRequested || !isWarpMode || thread.warpTimer.timeElapsed() > Sequencer.WARP_TIME) {
                         // Don't do anything to the stack, since loops need
                         // to be re-executed.
+                        if (ops) {
+                            this.runtime.emit('OPS_EXECUTED', ops);
+                        }
                         return;
                     }
 
@@ -302,11 +316,18 @@ class Sequencer {
                     // This level of the stack was waiting for a value.
                     // This means a reporter has just returned - so don't go
                     // to the next block for this level of the stack.
+                    if (ops) {
+                        this.runtime.emit('OPS_EXECUTED', ops);
+                    }
                     return;
                 }
 
                 // Get next block of existing block on the stack.
                 thread.goToNextBlock();
+            }
+
+            if (ops) {
+                this.runtime.emit('OPS_EXECUTED', ops);
             }
 
             if (this.runtime.inStep() || pauseRequested) {
