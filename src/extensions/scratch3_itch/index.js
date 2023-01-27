@@ -219,6 +219,26 @@ class Scratch3ItchBlocks {
                         }
                     }
                 },
+                {
+                    opcode: 'pressGreenFlag',
+                    blockType: BlockType.COMMAND,
+
+                    text: formatMessage({
+                        id: 'pressGreenFlagLabel',
+                        default: 'Press green flag',
+                        description: 'Label on the "pressGreenFlag" block'
+                    })
+                },
+                // {
+                //     opcode: 'pressGreenFlagAndWait',
+                //     blockType: BlockType.COMMAND,
+                //
+                //     text: formatMessage({
+                //         id: 'pressGreenFlagAndWaitLabel',
+                //         default: 'Press green flag and wait',
+                //         description: 'Label on the "pressGreenFlagAndWait" block'
+                //     })
+                // },
                 {   // TODO: change name to querySnapshot
                     opcode: 'queryState',
                     blockType: BlockType.REPORTER,
@@ -509,6 +529,15 @@ class Scratch3ItchBlocks {
                 util.yield();
             }
         }
+    }
+
+    /**
+     * Implement pressGreenFlag.
+     */
+    // TODO: make an sync version that can test something after the green flag thread is done running (to check state
+    //  when program is done)
+    pressGreenFlag () {
+        this.runtime.startHats('event_whenflagclicked');
     }
 
     /**
