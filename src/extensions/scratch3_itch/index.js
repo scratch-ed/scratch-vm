@@ -375,8 +375,8 @@ class Scratch3ItchBlocks {
             }
         } else {
             switch (property) {
-            case 'x position': return target.x;
-            case 'y position': return target.y;
+            case 'x position': return target['x position'];
+            case 'y position': return target['y position'];
             case 'direction': return target.direction;
             case 'costume #': return target.currentCostume + 1;
             case 'costume name':
