@@ -92,7 +92,7 @@ class Scratch3ItchBlocks {
                 {
                     // Required: the machine-readable name of this operation.
                     // This will appear in project JSON.
-                    opcode: 'assert', // becomes 'itch.assert'
+                    opcode: 'assert', // becomes 'itch_assert'
 
                     // Required: the kind of block we're defining, from a predefined list.
                     // Fully supported block types:
@@ -220,7 +220,7 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
-                    opcode: 'pressGreenFlag',
+                    opcode: 'pressGreenFlag', // final opcode: itch_pressGreenFlag
                     blockType: BlockType.COMMAND,
 
                     text: formatMessage({
@@ -239,6 +239,26 @@ class Scratch3ItchBlocks {
                 //         description: 'Label on the "pressGreenFlagAndWait" block'
                 //     })
                 // },
+                {
+
+                    opcode: 'moveMouseTo', // becomes 'itch_movemouseto'
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'moveMouseToXY',
+                        default: 'Move mouse to x: [X] y: [Y]',
+                        description: 'Label on the "moveMouseTo" block'
+                    }),
+                    arguments: {
+                        X: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 0
+                        },
+                        Y: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 0
+                        }
+                    }
+                },
                 {   // TODO: change name to querySnapshot
                     opcode: 'queryState',
                     blockType: BlockType.REPORTER,
@@ -431,12 +451,6 @@ class Scratch3ItchBlocks {
     }
 
     /**
-     * Implement startTests.
-     * @param {object} args - the block's arguments.
-     * @returns {boolean} true if the tests should start
-     */
-
-    /**
      * Implement groupName.
      * @param {object} args - the block's arguments.
      * @param {BlockUtility} util - the util.
@@ -541,13 +555,29 @@ class Scratch3ItchBlocks {
     }
 
     /**
+     * Implement moveMouseTo.
+     * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the util.
+     */
+    moveMouseTo (args, util) {
+        const clickData = {};
+        // we convert from scratch coordinates to client coordinates to make the simulation as real as possible when
+        // received by the postData function of the Mouse class.
+        // this postData function then converts these client coordinates back to canvas coordinates.
+        clickData.canvasWidth = util.runtime.renderer.canvas.width;
+        clickData.canvasHeight = util.runtime.renderer.canvas.height;
+        clickData.x = ((args.X + 240) * clickData.canvasWidth) / 480;
+        clickData.y = ((args.Y - 180) * clickData.canvasHeight) / -360;
+        util.runtime.ioDevices.mouse.postData(clickData);
+    }
+
+    /**
      * Implement queryState variable.
      * @param {object} args - the block's arguments.
      * @returns {string} value of the queried field
      */
     queryState (args) {
         if (!args.STATE) return '';
-
         const savedState = JSON.parse(args.STATE);
         const sprite = savedState.find(target => target.name === args.OBJECT);
         if (sprite) {
