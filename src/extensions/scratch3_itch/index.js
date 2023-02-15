@@ -497,22 +497,20 @@ class Scratch3ItchBlocks {
      * @param {BlockUtility} util - the util.
      */
     forSpriteDo (args, util) {
-        let blockId = this._getCurrentBlockId(util);
-        console.log('blockId: ' + blockId);
-        let branchBlockId = util.thread.target.blocks.getBranch(blockId, 1);
-        while (branchBlockId) {
-            console.log('branchBlockId: ' + branchBlockId);
-            console.log(util.thread.target.blocks.getBlock(branchBlockId));
-            branchBlockId = util.thread.target.blocks.getNextBlock(branchBlockId);
+        // TODO: wait until injected script is done to proceed in the regular thread, also delete injected blocks
+        // FIX: asserts that are moved to an other sprite can not access the testGroup
+        const spriteTarget = this.runtime.getTargetById(this.runtime.getSpriteTargetByName(args.SPRITE).id);
+        const firstBranchBlockId = util.thread.target.blocks.getBranch(this._getCurrentBlockId(util), 1);
+        if (firstBranchBlockId) {
+            // we need to inject the blocks (with the same id's) into the spriteTarget
+            // duplicate them first
+            const duplicatedBlocks = util.thread.target.blocks.duplicate();
+            // then append the blockId->block entries to the _blocks list of the spriteTarget.
+            // this list is what the VM sees, not what the user sees.
+            spriteTarget.blocks._blocks = Object.assign(duplicatedBlocks._blocks, spriteTarget.blocks._blocks);
+            // when injected, we can execute the script on the injected sprite.
+            util.runtime.toggleScript(firstBranchBlockId, {target: spriteTarget});
         }
-
-        // let inputs = util.thread.target.blocks.getInputs(block);
-        // console.log(inputs);
-        // let conditionBlockId = inputs.ASSERT_CONDITION.block;
-        // console.log(conditionBlockId);
-        // let conditionBlock = util.thread.target.blocks.getBlock(conditionBlockId);
-        // console.log(conditionBlock);
-
     }
 
     /**
