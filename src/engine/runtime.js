@@ -1777,7 +1777,7 @@ class Runtime extends EventEmitter {
      * Toggle a script.
      * @param {!string} topBlockId ID of block that starts the script.
      * @param {?object} opts optional arguments to toggle script
-     * @param {?string} opts.target target ID for target to run script on. If not supplied, uses editing target.
+     * @param {?Target} opts.target target to run script on. If not supplied, uses editing target.
      * @param {?boolean} opts.stackClick true if the user activated the stack by clicking, false if not. This
      *     determines whether we show a visual report when turning on the script.
      */
