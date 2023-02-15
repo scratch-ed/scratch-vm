@@ -536,19 +536,12 @@ class Scratch3ItchBlocks {
         if (!util.stackFrame.startedThreads) {
             // No - start hats for this broadcast.
 
-            // a copy of the current thread is taken because the startHats overwrites this somehow (with a wrong value)
-            const threadCopy = util.thread;
-            const specificKeyThreads = this.runtime.startHats('event_whenkeypressed', {
+            const specificKeyThreads = util.startHats('event_whenkeypressed', {
                 KEY_OPTION: args.KEY
             });
-            // correct the util.thread
-            util.thread = threadCopy;
-            const anyKeyThreads = this.runtime.startHats('event_whenkeypressed', {
+            const anyKeyThreads = util.startHats('event_whenkeypressed', {
                 KEY_OPTION: 'any'
             });
-            // correct the util.thread
-            util.thread = threadCopy;
-
             util.stackFrame.startedThreads = specificKeyThreads.concat(anyKeyThreads);
 
             if (util.stackFrame.startedThreads.length === 0) {
