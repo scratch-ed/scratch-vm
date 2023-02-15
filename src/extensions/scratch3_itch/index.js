@@ -188,6 +188,18 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
+                    opcode: 'forSpriteDo',
+                    blockType: BlockType.CONDITIONAL,
+                    branchCount: 1,
+                    text: 'For [SPRITE] do',
+                    arguments: {
+                        SPRITE: {
+                            type: ArgumentType.STRING,
+                            menu: 'sprites'
+                        }
+                    }
+                },
+                {
                     opcode: 'pressKey',
                     blockType: BlockType.COMMAND,
 
@@ -477,6 +489,30 @@ class Scratch3ItchBlocks {
             // but when it is called again do the first part of this if-else
             util.startBranch(1, true);
         }
+    }
+
+    /**
+     * Implement forSpriteDo.
+     * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the util.
+     */
+    forSpriteDo (args, util) {
+        let blockId = this._getCurrentBlockId(util);
+        console.log('blockId: ' + blockId);
+        let branchBlockId = util.thread.target.blocks.getBranch(blockId, 1);
+        while (branchBlockId) {
+            console.log('branchBlockId: ' + branchBlockId);
+            console.log(util.thread.target.blocks.getBlock(branchBlockId));
+            branchBlockId = util.thread.target.blocks.getNextBlock(branchBlockId);
+        }
+
+        // let inputs = util.thread.target.blocks.getInputs(block);
+        // console.log(inputs);
+        // let conditionBlockId = inputs.ASSERT_CONDITION.block;
+        // console.log(conditionBlockId);
+        // let conditionBlock = util.thread.target.blocks.getBlock(conditionBlockId);
+        // console.log(conditionBlock);
+
     }
 
     /**
