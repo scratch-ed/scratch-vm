@@ -497,47 +497,40 @@ class Scratch3ItchBlocks {
      * @param {BlockUtility} util - the util.
      */
     forSpriteDo (args, util) {
-        //util.thread.peekStackFrame().isLoop = true;
-
         const spriteTarget = this.runtime.getTargetById(this.runtime.getSpriteTargetByName(args.SPRITE).id);
         const firstBranchBlockId = util.thread.target.blocks.getBranch(this._getCurrentBlockId(util), 1);
         // no blocks to be injected and executed
         if (!firstBranchBlockId) {
-            console.log("empty");
             return;
         }
 
         // if injection is not done yet, do it
         if (!util.stackFrame.codeInjected) {
-            // TODO: wait until injected script is done to proceed in the regular thread, also delete injected blocks
-            // FIX: asserts that are moved to an other sprite can not access the testGroup
+            // FIX: asserts that are moved to another sprite can not access the testGroup
 
-
-            // we need to inject the blocks (with the same id's) into the spriteTarget
+            // We need to inject the blocks (with the same id's) into the spriteTarget
             // duplicate them first
             const duplicatedBlocks = util.thread.target.blocks.duplicate();
-            // then append the blockId->block entries to the _blocks list of the spriteTarget.
+            // Then append the blockId->block entries to the _blocks list of the spriteTarget.
             // this list is what the VM sees, not what the user sees.
-            spriteTarget.blocks._blocks = Object.assign(duplicatedBlocks._blocks, spriteTarget.blocks._blocks);
+            // We add all duplicated blocks to the spriteTarget blocks, also the ones that will not be executed
+            // this is inefficient, but it works
+            spriteTarget.blocks._blocks = Object.assign(spriteTarget.blocks._blocks, duplicatedBlocks._blocks);
+
             // when injected, we can execute the script on the injected sprite.
             util.runtime.toggleScript(firstBranchBlockId, {target: spriteTarget});
             util.stackFrame.codeInjected = true;
-            console.log("injecting code");
             util.yieldTick(); // can also use: util.startBranch(2, true);
 
         // if injection is done, but injected blocks are still executing
         } else if (this.runtime.threads
             .filter(thread => thread.topBlock === firstBranchBlockId && thread.status !== Thread.STATUS_DONE).length
         ) {
-            util.yieldTick(); //util.startBranch(2, true);
-        // injected blocks are done executing, do cleanup
+            util.yieldTick();
+        // injected blocks are done executing, do cleanup and delete them all
         } else {
-            console.log("deleting injected code");
-            // todo: check if actually deleted
-            let branchBlockId = firstBranchBlockId;
-            while (branchBlockId) {
-                delete spriteTarget.blocks._blocks[branchBlockId];
-                branchBlockId = util.thread.target.blocks.getNextBlock(branchBlockId);
+            for (const blockId in util.thread.target.blocks._blocks) {
+                spriteTarget.blocks.deleteBlock(blockId);
             }
             util.stackFrame.codeInjected = false;
         }
