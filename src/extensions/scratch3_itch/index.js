@@ -421,7 +421,13 @@ class Scratch3ItchBlocks {
     }
 
     _getCurrentFeedbackTree (util) {
-        return this.runtime.feedbackTrees[util.thread.topBlock];
+        this._util = util;
+        // For now we only support one feedback tree, once we support more than one "when tests started" head blocks
+        // we can use multiple feedback trees to split up the many tests.
+        // Injected blocks (see forSpriteDo()) have as their topBlock the ID of the first block in the
+        // injected sequence. Right now the topBlock is also the key that the feedback tree is stored under. So when
+        // multiple feedback trees are added this should be taken into account.
+        return Object.values(this.runtime.feedbackTrees)[0];
     }
 
     _getCurrentBlockId (util) {
@@ -506,8 +512,6 @@ class Scratch3ItchBlocks {
 
         // if injection is not done yet, do it
         if (!util.stackFrame.codeInjected) {
-            // FIX: asserts that are moved to another sprite can not access the testGroup
-
             // We need to inject the blocks (with the same id's) into the spriteTarget
             // duplicate them first
             const duplicatedBlocks = util.thread.target.blocks.duplicate();
