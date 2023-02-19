@@ -506,7 +506,6 @@ class Scratch3ItchBlocks {
             console.log("empty");
             return;
         }
-        console.log("in forspritedo");
 
         // if injection is not done yet, do it
         if (!util.stackFrame.codeInjected) {
@@ -523,19 +522,17 @@ class Scratch3ItchBlocks {
             // when injected, we can execute the script on the injected sprite.
             util.runtime.toggleScript(firstBranchBlockId, {target: spriteTarget});
             util.stackFrame.codeInjected = true;
-            console.log("if");
+            console.log("injecting code");
             util.yieldTick(); // can also use: util.startBranch(2, true);
 
         // if injection is done, but injected blocks are still executing
-        } else if (!this.runtime.threads
+        } else if (this.runtime.threads
             .filter(thread => thread.topBlock === firstBranchBlockId && thread.status !== Thread.STATUS_DONE).length
         ) {
-            // todo: something wrong with if above still, checkout contents of threads!
-            console.log("yielding");
             util.yieldTick(); //util.startBranch(2, true);
         // injected blocks are done executing, do cleanup
         } else {
-            console.log("deleting");
+            console.log("deleting injected code");
             // todo: check if actually deleted
             let branchBlockId = firstBranchBlockId;
             while (branchBlockId) {
