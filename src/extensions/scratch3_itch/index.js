@@ -1,6 +1,7 @@
 // Core, Team, and Official extensions can `require` VM code:
 const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
+const {v4} = require('uuid');
 // const TargetType = require('../../extension-support/target-type');
 
 // ...or VM dependencies:
@@ -53,6 +54,11 @@ class Scratch3ItchBlocks {
                 // (re)initialise the feedback tree
                 this.runtime.feedbackTrees[thread.topBlock] = new TreeNode(0, 'rootGroup');
             }
+
+            // Set to empty list everytime the tests start.
+            // The first time a forSpriteDo block is executed the injection is done.
+            // List of sprites where the test code is already injected into.
+            this.codeInjectionDone = [];
         });
     }
 
@@ -498,6 +504,63 @@ class Scratch3ItchBlocks {
     }
 
     /**
+     * Adds a when broadcast received block to the given blocks with a random uuidv4 message.
+     * @param {Blocks!} blocks - a blocks object of a sprite.
+     * @param {string!} nextId - id of the block underneath the broadcast block
+     * @returns {{id: string, message: string}} - the id of the broadcast received block and the message its waits for.
+     * @private
+     */
+    _createWhenBroadcastReceivedBlock (blocks, nextId) {
+        // Example of json passed to createBlock when creating a event_whenbroadcastreceived block.
+        //  {
+        //      id: "jd7GP7cdZ?Lx0h4|q/vX",
+        //      opcode: "event_whenbroadcastreceived",
+        //      inputs: {},
+        //      fields: {
+        //          "BROADCAST_OPTION": {
+        //              "name": "BROADCAST_OPTION",
+        //              "id": "q9D[^gy67My1|kG5t8,O",
+        //              "value": "message1",
+        //              "variableType": "broadcast_msg"
+        //          }
+        //      },
+        //      next: null,
+        //      topLevel: true,
+        //      parent: null,
+        //      shadow: false,
+        //      x: "-342",
+        //      y: "539"
+        //  }
+        const message = v4();
+        const id = v4();
+        const blockJson = {
+            id: id,
+            opcode: 'event_whenbroadcastreceived',
+            inputs: {},
+            fields: {
+                BROADCAST_OPTION: {
+                    name: 'BROADCAST_OPTION',
+                    id: v4(),
+                    value: message,
+                    variableType: 'broadcast_msg'
+                }
+            },
+            next: nextId,
+            topLevel: true,
+            parent: null,
+            shadow: false,
+            x: '0',
+            y: '0'
+        };
+        blocks.createBlock(blockJson);
+        return {id: id, message: message};
+    }
+
+    _createBroadcastBlock (blocks, parentBlockId, message) {
+
+    }
+
+    /**
      * Implement forSpriteDo.
      * @param {object} args - the block's arguments.
      * @param {BlockUtility} util - the util.
@@ -510,33 +573,17 @@ class Scratch3ItchBlocks {
             return;
         }
 
-        // if injection is not done yet, do it
-        if (!util.stackFrame.codeInjected) {
-            // We need to inject the blocks (with the same id's) into the spriteTarget
-            // duplicate them first
+        // If we have not injected the testcode into the target sprite, inject it.
+        // TODO: what about clones?
+        if (!this.codeInjectionDone.includes(args.SPRITE)) {
+            console.log("inserting");
             const duplicatedBlocks = util.thread.target.blocks.duplicate();
-            // Then append the blockId->block entries to the _blocks list of the spriteTarget.
-            // this list is what the VM sees, not what the user sees.
-            // We add all duplicated blocks to the spriteTarget blocks, also the ones that will not be executed
-            // this is inefficient, but it works
             spriteTarget.blocks._blocks = Object.assign(spriteTarget.blocks._blocks, duplicatedBlocks._blocks);
+            this.codeInjectionDone.push(args.SPRITE);
 
-            // when injected, we can execute the script on the injected sprite.
-            util.runtime.toggleScript(firstBranchBlockId, {target: spriteTarget});
-            util.stackFrame.codeInjected = true;
-            util.yieldTick(); // can also use: util.startBranch(2, true);
-
-        // if injection is done, but injected blocks are still executing
-        } else if (this.runtime.threads
-            .filter(thread => thread.topBlock === firstBranchBlockId && thread.status !== Thread.STATUS_DONE).length
-        ) {
-            util.yieldTick();
-        // injected blocks are done executing, do cleanup and delete them all
-        } else {
-            for (const blockId in util.thread.target.blocks._blocks) {
-                spriteTarget.blocks.deleteBlock(blockId);
-            }
-            util.stackFrame.codeInjected = false;
+            const {id, message} = this._createWhenBroadcastReceivedBlock(spriteTarget.blocks, firstBranchBlockId);
+            console.log(id, message);
+            console.log(spriteTarget.blocks._blocks);
         }
     }
 

@@ -46,6 +46,7 @@
     "scratch-translate-extension-languages": "0.0.20191118205314",
     "text-encoding": "0.7.0",
     "uuid": "^3.1.0",
+    "uuidv4": "^6.2.13",
     "worker-loader": "^1.1.1"
   },
   "peerDependencies": {
