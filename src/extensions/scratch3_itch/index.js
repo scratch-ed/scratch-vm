@@ -277,7 +277,7 @@ class Scratch3ItchBlocks {
                         }
                     }
                 },
-                {   // TODO: change name to querySnapshot
+                { // TODO: change name to querySnapshot
                     opcode: 'queryState',
                     blockType: BlockType.REPORTER,
                     text: formatMessage({
@@ -383,12 +383,12 @@ class Scratch3ItchBlocks {
                 const spriteJson = {};
                 spriteJson['x position'] = target.x;
                 spriteJson['y position'] = target.y;
-                spriteJson['direction'] = target.direction;
+                spriteJson.direction = target.direction;
                 spriteJson['costume #'] = target.currentCostume + 1;
                 spriteJson['costume name'] = target.sprite.costumes[target.currentCostume].name;
-                spriteJson['size'] = target.size;
-                spriteJson['volume'] = target.volume;
-                spriteJson['name'] = target.sprite.name;
+                spriteJson.size = target.size;
+                spriteJson.volume = target.volume;
+                spriteJson.name = target.sprite.name;
                 result.push(spriteJson);
             }
         }
@@ -507,7 +507,7 @@ class Scratch3ItchBlocks {
      * Adds a when broadcast received block to the given blocks with a random uuidv4 message.
      * @param {Blocks!} blocks - a blocks object of a sprite.
      * @param {string!} nextId - id of the block underneath the broadcast block
-     * @returns {{id: string, message: string}} - the id of the broadcast received block and the message its waits for.
+     * @returns {{whenBroadcastReceivedId: string, message: string}} - the id of the broadcast received block and the message its waits for.
      * @private
      */
     _createWhenBroadcastReceivedBlock (blocks, nextId) {
@@ -532,9 +532,9 @@ class Scratch3ItchBlocks {
         //      y: "539"
         //  }
         const message = v4();
-        const id = v4();
+        const whenBroadcastReceivedId = v4();
         const blockJson = {
-            id: id,
+            id: whenBroadcastReceivedId,
             opcode: 'event_whenbroadcastreceived',
             inputs: {},
             fields: {
@@ -553,11 +553,52 @@ class Scratch3ItchBlocks {
             y: '0'
         };
         blocks.createBlock(blockJson);
-        return {id: id, message: message};
+        return {whenBroadcastReceivedId: whenBroadcastReceivedId, message: message};
     }
 
-    _createBroadcastBlock (blocks, parentBlockId, message) {
+    _createBroadcastAndWaitBlock (blocks, parentBlockId, message) {
+        const menuId = v4();
+        const blockId = v4();
 
+        const block = {
+            id: blockId,
+            opcode: 'event_broadcastandwait',
+            inputs: {
+                BROADCAST_INPUT: {
+                    name: 'BROADCAST_INPUT',
+                    block: menuId,
+                    shadow: menuId
+                }
+            },
+            fields: {},
+            next: null,
+            topLevel: true,
+            parent: null,
+            shadow: false,
+            x: 0,
+            y: 0
+        };
+        const menu = {
+            id: menuId,
+            opcode: 'event_broadcast_menu',
+            inputs: {},
+            fields: {
+                BROADCAST_OPTION: {
+                    name: 'BROADCAST_OPTION',
+                    id: v4(),
+                    value: message,
+                    variableType: 'broadcast_msg'
+                }
+            },
+            next: null,
+            topLevel: false,
+            parent: blockId,
+            shadow: true
+        };
+
+        blocks.createBlock(menu);
+        blocks.createBlock(block);
+        return blockId;
     }
 
     /**
@@ -568,6 +609,7 @@ class Scratch3ItchBlocks {
     forSpriteDo (args, util) {
         const spriteTarget = this.runtime.getTargetById(this.runtime.getSpriteTargetByName(args.SPRITE).id);
         const firstBranchBlockId = util.thread.target.blocks.getBranch(this._getCurrentBlockId(util), 1);
+        const currentBlockId = this._getCurrentBlockId(util);
         // no blocks to be injected and executed
         if (!firstBranchBlockId) {
             return;
@@ -576,15 +618,18 @@ class Scratch3ItchBlocks {
         // If we have not injected the testcode into the target sprite, inject it.
         // TODO: what about clones?
         if (!this.codeInjectionDone.includes(args.SPRITE)) {
-            console.log("inserting");
             const duplicatedBlocks = util.thread.target.blocks.duplicate();
             spriteTarget.blocks._blocks = Object.assign(spriteTarget.blocks._blocks, duplicatedBlocks._blocks);
             this.codeInjectionDone.push(args.SPRITE);
 
-            const {id, message} = this._createWhenBroadcastReceivedBlock(spriteTarget.blocks, firstBranchBlockId);
-            console.log(id, message);
-            console.log(spriteTarget.blocks._blocks);
+            const {whenBroadcastReceivedId, message} =
+                this._createWhenBroadcastReceivedBlock(spriteTarget.blocks, firstBranchBlockId);
+            const broadcastAndWaitId = this._createBroadcastAndWaitBlock(util.thread.target.blocks, currentBlockId, message);
+            util.thread.target.blocks.getBlock(currentBlockId).inputs.SUBSTACK.block = broadcastAndWaitId;
+            util.thread.target.blocks.resetCache();
+            util.thread.target.blocks.emitProjectChanged();
         }
+        util.startBranch(1, false);
     }
 
     /**
