@@ -55,10 +55,10 @@ class Scratch3ItchBlocks {
                 this.runtime.feedbackTrees[thread.topBlock] = new TreeNode(0, 'rootGroup');
             }
 
-            // Set to empty list everytime the tests start.
-            // The first time a forSpriteDo block is executed the injection is done.
             // List of sprites where the test code is already injected into.
-            this.codeInjectionDone = [];
+            this.testCodeInjected = [];
+            // maps withSpriteDoBlock -> broadcastMessage
+            this.withSpriteDoBlockToBroadcastMessage = {};
         });
     }
 
@@ -616,20 +616,67 @@ class Scratch3ItchBlocks {
         }
 
         // If we have not injected the testcode into the target sprite, inject it.
+        // This is done the first time the first withSpriteDo block is executed in the test thread.
         // TODO: what about clones?
-        if (!this.codeInjectionDone.includes(args.SPRITE)) {
+        if (!this.testCodeInjected.includes(args.SPRITE)) {
             const duplicatedBlocks = util.thread.target.blocks.duplicate();
             spriteTarget.blocks._blocks = Object.assign(spriteTarget.blocks._blocks, duplicatedBlocks._blocks);
-            this.codeInjectionDone.push(args.SPRITE);
+            // delete "When tests started" block that was copied to spriteTarget to avoid accidental execution
+            const nextBlockFromTopBlock = spriteTarget.blocks._blocks[util.thread.topBlock].next;
+            spriteTarget.blocks._blocks[util.thread.topBlock].next = null;
+            spriteTarget.blocks._blocks[nextBlockFromTopBlock].parent = null;
+            spriteTarget.blocks.deleteBlock(util.thread.topBlock);
+            this.testCodeInjected.push(args.SPRITE);
+        }
 
+        // If we have not injected the event_whenbroadcastreceived block with the corresponding following blocks
+        // into the target sprite yet, inject it and save the broadcast message.
+        // This is done the first time for every withSpriteDo block that is executed in the test thread.
+        if (!this.withSpriteDoBlockToBroadcastMessage[currentBlockId]) {
             const {whenBroadcastReceivedId, message} =
                 this._createWhenBroadcastReceivedBlock(spriteTarget.blocks, firstBranchBlockId);
-            const broadcastAndWaitId = this._createBroadcastAndWaitBlock(util.thread.target.blocks, currentBlockId, message);
-            util.thread.target.blocks.getBlock(currentBlockId).inputs.SUBSTACK.block = broadcastAndWaitId;
-            util.thread.target.blocks.resetCache();
-            util.thread.target.blocks.emitProjectChanged();
+            // save message that needs to be broadcast to execute the injected blocks
+            this.withSpriteDoBlockToBroadcastMessage[currentBlockId] = message;
         }
-        util.startBranch(1, false);
+
+        // The remaining code is for starting the thread that waits for the broadcast message.
+        // and waiting until it is done.
+
+        // Have we run before, starting threads?
+        if (!util.stackFrame.startedThreads) {
+            // No - start hats for this broadcast.
+            util.stackFrame.startedThreads = util.startHats(
+                'event_whenbroadcastreceived', {
+                    BROADCAST_OPTION: this.withSpriteDoBlockToBroadcastMessage[currentBlockId]
+                }
+            );
+            if (util.stackFrame.startedThreads.length === 0) {
+                // Nothing was started.
+                return;
+            }
+        }
+
+        // We've run before; check if the wait is still going on.
+        const instance = this;
+        // Scratch 2 considers threads to be waiting if they are still in
+        // runtime.threads. Threads that have run all their blocks, or are
+        // marked done but still in runtime.threads are still considered to
+        // be waiting.
+        const waiting = util.stackFrame.startedThreads
+            .some(thread => instance.runtime.threads.indexOf(thread) !== -1);
+        if (waiting) {
+            // If all threads are waiting for the next tick or later yield
+            // for a tick as well. Otherwise yield until the next loop of
+            // the threads.
+            if (
+                util.stackFrame.startedThreads
+                    .every(thread => instance.runtime.isWaitingThread(thread))
+            ) {
+                util.yieldTick();
+            } else {
+                util.yield();
+            }
+        }
     }
 
     /**
