@@ -48,20 +48,57 @@ class Scratch3ItchBlocks {
         // activate the startTests hat block when 'PROJECT_TEST_START' is emitted.
         this.runtime.on('PROJECT_TESTS_START', () => {
             const startedThreads = this.runtime.startHats('itch_startTests');
-
-            // for each restarted thread, create a new feedback tree
-            for (const thread of startedThreads) {
-                // (re)initialise the feedback tree
-                this.runtime.feedbackTrees[thread.topBlock] = new TreeNode(0, 'rootGroup');
+            if (!startedThreads.length) {
+                return;
             }
 
-            // List of sprites where the test code is already injected into.
-            this.testCodeInjected = [];
-            // maps withSpriteDoBlock -> broadcastMessage
-            this.withSpriteDoBlockToBroadcastMessage = {};
-            // maps withSpriteDoBlock -> broadcastId
-            this.withSpriteDoBlockToBroadcastId = {};
+            // (re)initialise the feedback tree
+            this.runtime.feedbackTrees[startedThreads[0].topBlock] = new TreeNode(0, 'rootGroup');
+
+            this._undoInjection(startedThreads[0].topBlock);
+            this._clearDataStructures();
         });
+    }
+
+    /**
+     * Clear datastructures used for the test execution.
+     * @private
+     */
+    _clearDataStructures () {
+        // Clear datastructures
+        // List of sprites where the test code is already injected into.
+        this.testCodeInjected = [];
+        // maps withSpriteDoBlock -> broadcastMessage
+        this.withSpriteDoBlockToBroadcastMessage = {};
+        // maps withSpriteDoBlock -> broadcastId
+        this.withSpriteDoBlockToBroadcastId = {};
+    }
+
+    /**
+     * Undo the injection of the test code and broadcast blocks.
+     * @param {string} testThreadTopBlock ID of the top block (when tests started) of the test thread.
+     * @private
+     */
+    _undoInjection (testThreadTopBlock) {
+        // If datastructures are not initialized yet, there is nothing to clean.
+        if (!this.testCodeInjected ||
+            !this.withSpriteDoBlockToBroadcastId ||
+            !this.withSpriteDoBlockToBroadcastMessage) {
+            return;
+        }
+
+        // We clean up the injected blocks of the previous execution
+        // At the moment this seems to be the best way to do this, but it is not very clean since the injected blocks
+        // of the last execution are not deleted.
+        for (const spriteName of this.testCodeInjected) {
+            const sprite = this.runtime.getTargetById(this.runtime.getSpriteTargetByName(spriteName).id);
+            // Delete inserted test code
+            sprite.blocks.deleteBlock(testThreadTopBlock);
+            // Delete inserted broadcast blocks
+            for (const broadcastId of Object.values(this.withSpriteDoBlockToBroadcastId)) {
+                sprite.blocks.deleteBlock(broadcastId);
+            }
+        }
     }
 
     /**
@@ -177,6 +214,8 @@ class Scratch3ItchBlocks {
                     opcode: 'startTests',
                     blockType: BlockType.EVENT,
                     isEdgeActivated: false, // undocumented option that is used on line 1234 of src/engine/runtime.js
+                    // if test flag is clicked, restart the test thread if already running
+                    shouldRestartExistingThreads: true,
                     text: formatMessage({
                         id: 'startTestsLabel',
                         default: 'When tests started',
@@ -626,11 +665,9 @@ class Scratch3ItchBlocks {
         if (!this.testCodeInjected.includes(args.SPRITE)) {
             const duplicatedBlocks = util.thread.target.blocks.duplicate();
             spriteTarget.blocks._blocks = Object.assign(spriteTarget.blocks._blocks, duplicatedBlocks._blocks);
-            // delete "When tests started" block that was copied to spriteTarget to avoid accidental execution
-            const nextBlockFromTopBlock = spriteTarget.blocks._blocks[util.thread.topBlock].next;
-            spriteTarget.blocks._blocks[util.thread.topBlock].next = null;
-            spriteTarget.blocks._blocks[nextBlockFromTopBlock].parent = null;
-            spriteTarget.blocks.deleteBlock(util.thread.topBlock);
+            // Set "When tests started" block that was copied to spriteTarget lopLevel field to false
+            // to avoid accidental execution and make it invisible to the user.
+            spriteTarget.blocks._blocks[util.thread.topBlock].topLevel = false;
             this.testCodeInjected.push(args.SPRITE);
         }
 
