@@ -672,6 +672,12 @@ class Scratch3ItchBlocks {
      * @param {BlockUtility} util - the util.
      */
     forSpriteDo (args, util) {
+        // If the target sprite is the same as the sprite the test code is running in, don't do any insertion,
+        // just execute blocks.
+        if (args.SPRITE === util.target.getName()) {
+            util.startBranch(1, false);
+        }
+
         const spriteTarget = this.runtime.getSpriteTargetByName(args.SPRITE);
         if (!spriteTarget) return;
 
