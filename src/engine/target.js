@@ -239,7 +239,7 @@ class Target extends EventEmitter {
     * Search begins for local lists; then look for globals.
     * @param {!string} id Id of the list.
     * @param {!string} name Name of the list.
-    * @return {!Varible} Variable object representing the found/created list.
+    * @return {!Variable} Variable object representing the found/created list.
      */
     lookupOrCreateList (id, name) {
         let list = this.lookupVariableById(id);
