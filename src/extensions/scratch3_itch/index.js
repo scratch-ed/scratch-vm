@@ -97,9 +97,12 @@ class Scratch3ItchBlocks {
             const sprite = this.runtime.getTargetById(this.runtime.getSpriteTargetByName(spriteName).id);
             // Delete inserted test code
             sprite.blocks.deleteBlock(testThreadTopBlock);
-            // Delete inserted broadcast blocks
-            for (const broadcastId of Object.values(this.withSpriteDoBlockToBroadcastId)) {
-                sprite.blocks.deleteBlock(broadcastId);
+        }
+
+        // Delete inserted broadcast blocks
+        for (const spriteNameToBroadcastId of Object.values(this.withSpriteDoBlockToBroadcastId)) {
+            for (const spriteName of Object.keys(spriteNameToBroadcastId)) {
+                this.runtime.getSpriteTargetByName(spriteName).blocks.deleteBlock(spriteNameToBroadcastId[spriteName]);
             }
         }
     }
@@ -669,13 +672,14 @@ class Scratch3ItchBlocks {
      * @param {BlockUtility} util - the util.
      */
     forSpriteDo (args, util) {
-        const spriteTarget = this.runtime.getTargetById(this.runtime.getSpriteTargetByName(args.SPRITE).id);
+        const spriteTarget = this.runtime.getSpriteTargetByName(args.SPRITE);
+        if (!spriteTarget) return;
+
         const firstBranchBlockId = util.thread.target.blocks.getBranch(this._getCurrentBlockId(util), 1);
         const currentBlockId = this._getCurrentBlockId(util);
+
         // no blocks to be injected and executed
-        if (!firstBranchBlockId) {
-            return;
-        }
+        if (!firstBranchBlockId) return;
 
         // If we have not injected the testcode into the target sprite, inject it.
         // This is done the first time the first withSpriteDo block is executed in the test thread.
@@ -693,12 +697,18 @@ class Scratch3ItchBlocks {
         // into the target sprite yet, inject it and save the broadcast message.
         // This is done the first time for every withSpriteDo block that is executed in the test thread.
         if (!this.withSpriteDoBlockToBroadcastMessage[currentBlockId]) {
+            this.withSpriteDoBlockToBroadcastMessage[currentBlockId] = {};
+        }
+        if (!this.withSpriteDoBlockToBroadcastId[currentBlockId]) {
+            this.withSpriteDoBlockToBroadcastId[currentBlockId] = {};
+        }
+        if (!this.withSpriteDoBlockToBroadcastMessage[currentBlockId][args.SPRITE]) {
             const {whenBroadcastReceivedId, message} =
                 this._createWhenBroadcastReceivedBlock(spriteTarget.blocks, firstBranchBlockId);
             // save message that needs to be broadcast to execute the injected blocks
-            this.withSpriteDoBlockToBroadcastMessage[currentBlockId] = message;
+            this.withSpriteDoBlockToBroadcastMessage[currentBlockId][args.SPRITE] = message;
             // save id of the event_whenbroadcastreceived block that corresponds to the withSpriteDo block
-            this.withSpriteDoBlockToBroadcastId[currentBlockId] = whenBroadcastReceivedId;
+            this.withSpriteDoBlockToBroadcastId[currentBlockId][args.SPRITE] = whenBroadcastReceivedId;
         }
 
         // The remaining code is for starting the thread that waits for the broadcast message.
@@ -708,16 +718,16 @@ class Scratch3ItchBlocks {
         if (!util.stackFrame.startedThreads) {
             // No - start hats for this broadcast.
             // We add and delete the whenbroadcastreceived script to avoid it being shown to the user.
-            spriteTarget.blocks._addScript(this.withSpriteDoBlockToBroadcastId[currentBlockId]);
+            spriteTarget.blocks._addScript(this.withSpriteDoBlockToBroadcastId[currentBlockId][args.SPRITE]);
             spriteTarget.blocks.resetCache();
 
             util.stackFrame.startedThreads = util.startHats(
                 'event_whenbroadcastreceived', {
-                    BROADCAST_OPTION: this.withSpriteDoBlockToBroadcastMessage[currentBlockId]
+                    BROADCAST_OPTION: this.withSpriteDoBlockToBroadcastMessage[currentBlockId][args.SPRITE]
                 }
             );
 
-            spriteTarget.blocks._deleteScript(this.withSpriteDoBlockToBroadcastId[currentBlockId]);
+            spriteTarget.blocks._deleteScript(this.withSpriteDoBlockToBroadcastId[currentBlockId][args.SPRITE]);
             spriteTarget.blocks.resetCache();
 
             if (util.stackFrame.startedThreads.length === 0) {
