@@ -57,6 +57,14 @@ class Scratch3ItchBlocks {
                 return;
             }
 
+            // first time running, count blocks per sprite to later ensure all injected blocks were cleaned up
+            if (!this.spriteToPreInjectionBlockCount) {
+                this.spriteToPreInjectionBlockCount = {};
+                for (const target of this.runtime.targets) {
+                    this.spriteToPreInjectionBlockCount[target.id] = Object.keys(target.blocks._blocks).length;
+                }
+            }
+
             // (re)initialise the feedback tree
             this.runtime.feedbackTrees[startedThreads[0].topBlock] = new TreeNode(0, 'rootGroup');
 
@@ -90,7 +98,9 @@ class Scratch3ItchBlocks {
         // If datastructures are not initialized yet, there is nothing to clean.
         if (!this.testCodeInjected ||
             !this.withSpriteDoBlockToBroadcastId ||
-            !this.withSpriteDoBlockToBroadcastMessage) {
+            !this.withSpriteDoBlockToBroadcastMessage ||
+            !this.booleanConditionInsertionToSpriteIdToResult ||
+            !this.spriteToPreInjectionBlockCount) {
             return;
         }
 
@@ -108,6 +118,24 @@ class Scratch3ItchBlocks {
         for (const spriteNameToBroadcastId of Object.values(this.withSpriteDoBlockToBroadcastId)) {
             for (const spriteName of Object.keys(spriteNameToBroadcastId)) {
                 this.runtime.getSpriteTargetByName(spriteName).blocks.deleteBlock(spriteNameToBroadcastId[spriteName]);
+            }
+        }
+        // check if injection cleanup was done correctly
+        this._checkCorrectCleanup();
+    }
+
+    /**
+     * Check if undoing the injection of the test code and broadcast blocks was correctly done.
+     * @private
+     */
+    _checkCorrectCleanup () {
+        for (const targetId of Object.keys(this.spriteToPreInjectionBlockCount)) {
+            const target = this.runtime.getTargetById(targetId);
+            const initialBlockCount = this.spriteToPreInjectionBlockCount[target.id];
+            const currentBlockCount = Object.keys(target.blocks._blocks).length;
+            if (initialBlockCount < currentBlockCount) {
+                this.spriteToPreInjectionBlockCount[target.id] = currentBlockCount;
+                console.warn(`Blocks injected into target ${target.getName()} possibly not cleaned up correctly: initial block count was ${initialBlockCount} while block count after cleanup is ${currentBlockCount}, this could mean not all injected blocks were cleaned up!`);
             }
         }
     }
@@ -502,8 +530,7 @@ class Scratch3ItchBlocks {
             if (!this.withSpriteDoBlockToBroadcastMessage[currentBlockId][spriteTarget.getName()]) {
                 // always use the same broadcast message for the same spriteFilter block insertion
                 // remove the next block reference of the inserted spriteFilter block.
-                spriteTarget.blocks.getBlock(spriteTarget.blocks.getBlock(currentBlockId).next).parent = null;
-                spriteTarget.blocks.getBlock(currentBlockId).next = null;
+                delete spriteTarget.blocks.getBlock(currentBlockId).next;
                 spriteTarget.blocks.resetCache();
 
                 const {whenBroadcastReceivedId, _} =
