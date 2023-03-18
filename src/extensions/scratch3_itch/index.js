@@ -528,11 +528,11 @@ class Scratch3ItchBlocks {
                 this.withSpriteDoBlockToBroadcastId[currentBlockId] = {};
             }
             if (!this.withSpriteDoBlockToBroadcastMessage[currentBlockId][spriteTarget.getName()]) {
-                // always use the same broadcast message for the same spriteFilter block insertion
-                // remove the next block reference of the inserted spriteFilter block.
-                delete spriteTarget.blocks.getBlock(currentBlockId).next;
-                spriteTarget.blocks.resetCache();
+                // Take the inserted spriteFilter from the inserted testcode,
+                // so we can add the event_whenbroadcastreceived as its parent.
+                this._sliceBlock(spriteTarget, currentBlockId);
 
+                // always use the same broadcast message for the same spriteFilter block insertion
                 const {whenBroadcastReceivedId, _} =
                     this._createWhenBroadcastReceivedBlock(spriteTarget.blocks, currentBlockId, broadcastMessage);
                 // save message that needs to be broadcast to execute the injected blocks
@@ -708,6 +708,33 @@ class Scratch3ItchBlocks {
 
     _getCurrentBlock (util) {
         return util.thread.target.blocks.getBlock(this._getCurrentBlockId(util));
+    }
+
+    /**
+     * Remove the current block from between its parent and its next block. Don't delete it.
+     * Slicing blocks cleanly (changing parent and next to point to each other)
+     * is important for block injection cleanup since those pointers are used.
+     * @param {Target!} target - the target that the block is in.
+     * @param {string!} blockId - the id of the block to remove.
+     * @private
+     */
+    _sliceBlock (target, blockId) {
+        const injectedSpriteFilterBlock = target.blocks.getBlock(blockId);
+        const injectedSpriteFilterBlockParent = target.blocks.getBlock(injectedSpriteFilterBlock.parent);
+        const injectedSpriteFilterBlockNext = target.blocks.getBlock(injectedSpriteFilterBlock.next);
+
+        // if block has parent block and next block, change next field of parent block and parent field of next block.
+        if (injectedSpriteFilterBlockParent && injectedSpriteFilterBlockNext) {
+            injectedSpriteFilterBlockParent.next = injectedSpriteFilterBlockNext.id;
+            injectedSpriteFilterBlockNext.parent = injectedSpriteFilterBlockParent.id;
+        } else if (injectedSpriteFilterBlockParent) {
+            delete injectedSpriteFilterBlockParent.next;
+        } else if (injectedSpriteFilterBlockNext) {
+            delete injectedSpriteFilterBlockNext.parent;
+        }
+        // remove references to parent and next block
+        delete injectedSpriteFilterBlock.parent;
+        delete injectedSpriteFilterBlock.next;
     }
 
     /**
