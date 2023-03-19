@@ -50,10 +50,10 @@ class Scratch3ItchBlocks {
             }
 
             // first time running, count blocks per sprite to later ensure all injected blocks were cleaned up
-            if (!this.spriteToPreInjectionBlockCount) {
-                this.spriteToPreInjectionBlockCount = {};
+            if (!this.spriteIdToPreInjectionBlockCount) {
+                this.spriteIdToPreInjectionBlockCount = {};
                 for (const target of this.runtime.targets) {
-                    this.spriteToPreInjectionBlockCount[target.id] = Object.keys(target.blocks._blocks).length;
+                    this.spriteIdToPreInjectionBlockCount[target.id] = Object.keys(target.blocks._blocks).length;
                 }
             }
 
@@ -74,12 +74,12 @@ class Scratch3ItchBlocks {
         // List of sprites where the test code is already injected into.
         this.testCodeInjected = [];
         // injecter block id -> injected sprite id -> broadcast message
-        this.injecterBlockIdToInjectedSpriteToBroadcastMessage = {};
+        this.injecterBlockIdToInjectedSpriteIdToBroadcastMessage = {};
         // injecter block id -> injected sprite id -> event_whenbroadcastreceived block id
-        this.injecterBlockIdToInjectedSpriteToBroadcastId = {};
+        this.injecterBlockIdToInjectedSpriteIdToBroadcastId = {};
         // Ids of the boolean conditions that are already injected
         // boolean condition block id -> injected sprite id -> result of boolean condition
-        this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult = {};
+        this.injectedBooleanBlockIdToInjectedSpriteIdToBooleanBlockResult = {};
     }
 
     /**
@@ -90,10 +90,10 @@ class Scratch3ItchBlocks {
     _undoInjection (testThreadTopBlock) {
         // If datastructures are not initialized yet, there is nothing to clean.
         if (!this.testCodeInjected ||
-            !this.injecterBlockIdToInjectedSpriteToBroadcastId ||
-            !this.injecterBlockIdToInjectedSpriteToBroadcastMessage ||
-            !this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult ||
-            !this.spriteToPreInjectionBlockCount) {
+            !this.injecterBlockIdToInjectedSpriteIdToBroadcastId ||
+            !this.injecterBlockIdToInjectedSpriteIdToBroadcastMessage ||
+            !this.injectedBooleanBlockIdToInjectedSpriteIdToBooleanBlockResult ||
+            !this.spriteIdToPreInjectionBlockCount) {
             return;
         }
 
@@ -107,7 +107,7 @@ class Scratch3ItchBlocks {
         }
 
         // Delete injected broadcast blocks
-        for (const spriteNameToBroadcastId of Object.values(this.injecterBlockIdToInjectedSpriteToBroadcastId)) {
+        for (const spriteNameToBroadcastId of Object.values(this.injecterBlockIdToInjectedSpriteIdToBroadcastId)) {
             for (const id of Object.keys(spriteNameToBroadcastId)) {
                 const sprite = this.runtime.getTargetById(id);
                 if (sprite) sprite.blocks.deleteBlock(spriteNameToBroadcastId[id]);
@@ -122,17 +122,17 @@ class Scratch3ItchBlocks {
      * @private
      */
     _checkCorrectCleanup () {
-        for (const targetId of Object.keys(this.spriteToPreInjectionBlockCount)) {
+        for (const targetId of Object.keys(this.spriteIdToPreInjectionBlockCount)) {
             const target = this.runtime.getTargetById(targetId);
             if (!target) {
                 // target was deleted
-                delete this.spriteToPreInjectionBlockCount[targetId];
+                delete this.spriteIdToPreInjectionBlockCount[targetId];
                 continue;
             }
-            const initialBlockCount = this.spriteToPreInjectionBlockCount[target.id];
+            const initialBlockCount = this.spriteIdToPreInjectionBlockCount[target.id];
             const currentBlockCount = Object.keys(target.blocks._blocks).length;
             if (initialBlockCount < currentBlockCount) {
-                this.spriteToPreInjectionBlockCount[target.id] = currentBlockCount;
+                this.spriteIdToPreInjectionBlockCount[target.id] = currentBlockCount;
                 // eslint-disable-next-line max-len,no-console
                 console.warn(`Blocks injected into target ${target.getName()} possibly not cleaned up correctly: initial block count was ${initialBlockCount} while block count after cleanup is ${currentBlockCount}, this could mean not all injected blocks were cleaned up!`);
             }
@@ -656,10 +656,10 @@ class Scratch3ItchBlocks {
      */
     _broadcastReceivedBlockIsPresent (util, spriteToInjectId, injecterBlockId) {
         const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
-        if (!this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId]) {
-            this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId] = {};
+        if (!this.injecterBlockIdToInjectedSpriteIdToBroadcastMessage[injecterBlockId]) {
+            this.injecterBlockIdToInjectedSpriteIdToBroadcastMessage[injecterBlockId] = {};
         }
-        return this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.id] !==
+        return this.injecterBlockIdToInjectedSpriteIdToBroadcastMessage[injecterBlockId][spriteToInject.id] !==
             undefined;
     }
 
@@ -675,18 +675,18 @@ class Scratch3ItchBlocks {
      * @private
      */
     _injectBroadcastThread (util, spriteToInjectId, injecterBlockId, broadcastNextBlockId, possiblyPresetBroadcastMessage) {
-        if (!this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId]) {
-            this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId] = {};
+        if (!this.injecterBlockIdToInjectedSpriteIdToBroadcastId[injecterBlockId]) {
+            this.injecterBlockIdToInjectedSpriteIdToBroadcastId[injecterBlockId] = {};
         }
         const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
         // always use the same broadcast message for the same spriteFilter block injection
         const {whenBroadcastReceivedId, broadcastMessage} = this._createWhenBroadcastReceivedBlock(
             spriteToInject.blocks, broadcastNextBlockId, possiblyPresetBroadcastMessage);
         // save message that needs to be broadcast to execute the injected blocks
-        this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.id] =
+        this.injecterBlockIdToInjectedSpriteIdToBroadcastMessage[injecterBlockId][spriteToInject.id] =
             broadcastMessage;
         // save id of the event_whenbroadcastreceived block that corresponds to the spriteFilter block
-        this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteToInject.id] =
+        this.injecterBlockIdToInjectedSpriteIdToBroadcastId[injecterBlockId][spriteToInject.id] =
             whenBroadcastReceivedId;
     }
 
@@ -765,7 +765,7 @@ class Scratch3ItchBlocks {
             // Add them
             for (const spriteTarget of sprites) {
                 spriteTarget.blocks._addScript(
-                    this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteTarget.id]
+                    this.injecterBlockIdToInjectedSpriteIdToBroadcastId[injecterBlockId][spriteTarget.id]
                 );
                 spriteTarget.blocks.resetCache();
             }
@@ -780,7 +780,7 @@ class Scratch3ItchBlocks {
             // Once started, delete them
             for (const spriteTarget of sprites) {
                 spriteTarget.blocks._deleteScript(
-                    this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteTarget.id]
+                    this.injecterBlockIdToInjectedSpriteIdToBroadcastId[injecterBlockId][spriteTarget.id]
                 );
                 spriteTarget.blocks.resetCache();
             }
@@ -887,7 +887,7 @@ class Scratch3ItchBlocks {
             util,
             [spriteTarget],
             currentBlockId,
-            this.injecterBlockIdToInjectedSpriteToBroadcastMessage[currentBlockId][spriteTarget.id]
+            this.injecterBlockIdToInjectedSpriteIdToBroadcastMessage[currentBlockId][spriteTarget.id]
         );
 
         this._waitForStartedThreads(util);
@@ -912,11 +912,11 @@ class Scratch3ItchBlocks {
         const currentBlockId = this._getCurrentBlockId(util);
         const booleanStatementBlock = util.thread.target.blocks.getBlock(currentBlockId).inputs.CONDITION.block;
 
-        if (Object.keys(this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult)
+        if (Object.keys(this.injectedBooleanBlockIdToInjectedSpriteIdToBooleanBlockResult)
             .includes(booleanStatementBlock) && !util.stackFrame.inOriginalBlock) {
             // We are executing an injected block, thus all we need to do is save the result
             // of the condition for the sprite we are in.
-            this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock][util.target.id] =
+            this.injectedBooleanBlockIdToInjectedSpriteIdToBooleanBlockResult[booleanStatementBlock][util.target.id] =
                 args.CONDITION;
             return;
         }
@@ -924,14 +924,14 @@ class Scratch3ItchBlocks {
         // From here on out the code in this function is always being executed in the original block.
         util.stackFrame.inOriginalBlock = true;
 
-        if (!this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock]) {
-            this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock] = {};
+        if (!this.injectedBooleanBlockIdToInjectedSpriteIdToBooleanBlockResult[booleanStatementBlock]) {
+            this.injectedBooleanBlockIdToInjectedSpriteIdToBooleanBlockResult[booleanStatementBlock] = {};
         }
         const broadcastMessage = uid();
         for (const spriteTarget of sprites) {
             if (spriteTarget.id === util.target.id) {
                 // Dont inject into test sprite, just save condition result
-                this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock][spriteTarget.id] =
+                this.injectedBooleanBlockIdToInjectedSpriteIdToBooleanBlockResult[booleanStatementBlock][spriteTarget.id] =
                     args.CONDITION;
                 continue;
             }
@@ -960,7 +960,7 @@ class Scratch3ItchBlocks {
             sprites.filter(sprite => sprite.id !== util.target.id),
             currentBlockId,
             // all broadcast messages are the same, so just take the first ones
-            Object.values(this.injecterBlockIdToInjectedSpriteToBroadcastMessage[currentBlockId])[0]
+            Object.values(this.injecterBlockIdToInjectedSpriteIdToBroadcastMessage[currentBlockId])[0]
         );
 
         // wait for started threads, when done waiting, use boolean condition results from all sprites to filter them
@@ -968,7 +968,7 @@ class Scratch3ItchBlocks {
             const list = util.target.lookupVariableByNameAndType(args.SELECTED_LIST, Variable.LIST_TYPE, false);
             sprites
                 .filter(sprite =>
-                    this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock][sprite.id])
+                    this.injectedBooleanBlockIdToInjectedSpriteIdToBooleanBlockResult[booleanStatementBlock][sprite.id])
                 .forEach(sprite => list.value.push(sprite.getName()));
             list._monitorUpToDate = false;
         }
