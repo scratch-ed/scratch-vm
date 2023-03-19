@@ -79,13 +79,13 @@ class Scratch3ItchBlocks {
         // Clear datastructures
         // List of sprites where the test code is already injected into.
         this.testCodeInjected = [];
-        // inserter block -> inserted sprite -> broadcast message
-        this.inserterBlockIdToInsertedSpriteToBroadcastMessage = {};
-        // inserter block -> inserted sprite -> event_whenbroadcastreceived block id
-        this.inserterBlockIdToInsertedSpriteToBroadcastId = {};
-        // Ids of the boolean conditions that are already inserted
-        // boolean condition block id -> inserted sprite -> result of boolean condition
-        this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult = {};
+        // injecter block -> injected sprite -> broadcast message
+        this.injecterBlockIdToInjectedSpriteToBroadcastMessage = {};
+        // injecter block -> injected sprite -> event_whenbroadcastreceived block id
+        this.injecterBlockIdToInjectedSpriteToBroadcastId = {};
+        // Ids of the boolean conditions that are already injected
+        // boolean condition block id -> injected sprite -> result of boolean condition
+        this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult = {};
     }
 
     /**
@@ -96,9 +96,9 @@ class Scratch3ItchBlocks {
     _undoInjection (testThreadTopBlock) {
         // If datastructures are not initialized yet, there is nothing to clean.
         if (!this.testCodeInjected ||
-            !this.inserterBlockIdToInsertedSpriteToBroadcastId ||
-            !this.inserterBlockIdToInsertedSpriteToBroadcastMessage ||
-            !this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult ||
+            !this.injecterBlockIdToInjectedSpriteToBroadcastId ||
+            !this.injecterBlockIdToInjectedSpriteToBroadcastMessage ||
+            !this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult ||
             !this.spriteToPreInjectionBlockCount) {
             return;
         }
@@ -109,12 +109,12 @@ class Scratch3ItchBlocks {
         for (const spriteName of this.testCodeInjected) {
             // todo: when new project is loaded or sprites are deleted, getSpriteTargetByName is undefined
             const sprite = this.runtime.getTargetById(this.runtime.getSpriteTargetByName(spriteName).id);
-            // Delete inserted test code
+            // Delete injected test code
             sprite.blocks.deleteBlock(testThreadTopBlock);
         }
 
-        // Delete inserted broadcast blocks
-        for (const spriteNameToBroadcastId of Object.values(this.inserterBlockIdToInsertedSpriteToBroadcastId)) {
+        // Delete injected broadcast blocks
+        for (const spriteNameToBroadcastId of Object.values(this.injecterBlockIdToInjectedSpriteToBroadcastId)) {
             for (const spriteName of Object.keys(spriteNameToBroadcastId)) {
                 this.runtime.getSpriteTargetByName(spriteName).blocks.deleteBlock(spriteNameToBroadcastId[spriteName]);
             }
@@ -635,7 +635,7 @@ class Scratch3ItchBlocks {
      * @param {string!} spriteToInjectId - the sprite to inject the code into.
      * @private
      */
-    _insertAllCodeIfNeeded (util, spriteToInjectId) {
+    _injectAllCodeIfNeeded (util, spriteToInjectId) {
         const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
         if (!this.testCodeInjected.includes(spriteToInject.getName())) {
             const duplicatedBlocks = util.thread.target.blocks.duplicate();
@@ -651,44 +651,44 @@ class Scratch3ItchBlocks {
      * Check if the broadcast received block and its following blocks are present in the spriteToInject.
      * @param {BlockUtility!} util - the block utility object.
      * @param {string!} spriteToInjectId - id of the sprite to check if the broadcast received block is present in.
-     * @param {string!} injecterBlockId - an id of an inserter block used to retrieve information about
-     *      the corresponding inserted event_whenbroadcastreceived blocks.
+     * @param {string!} injecterBlockId - an id of an injecter block used to retrieve information about
+     *      the corresponding injected event_whenbroadcastreceived blocks.
      * @returns {boolean} - true if broadcast thread is present, false otherwise.
      * @private
      */
     _broadcastReceivedBlockIsPresent (util, spriteToInjectId, injecterBlockId) {
         const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
-        if (!this.inserterBlockIdToInsertedSpriteToBroadcastMessage[injecterBlockId]) {
-            this.inserterBlockIdToInsertedSpriteToBroadcastMessage[injecterBlockId] = {};
+        if (!this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId]) {
+            this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId] = {};
         }
-        if (!this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId]) {
-            this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId] = {};
+        if (!this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId]) {
+            this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId] = {};
         }
-        return this.inserterBlockIdToInsertedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.getName()] !==
+        return this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.getName()] !==
             undefined;
     }
 
     /**
-     * Insert a broadcast received block and its following blocks into the spriteToInject.
+     * Inject a broadcast received block and its following blocks into the spriteToInject.
      * @param {BlockUtility!} util - the block utility object.
      * @param {string!} spriteToInjectId - id of the sprite to check if the broadcast received block is present in.
-     * @param {string!} injecterBlockId - an id of an inserter block used to retrieve information about
-     *      the corresponding inserted event_whenbroadcastreceived blocks.
+     * @param {string!} injecterBlockId - an id of an injecter block used to retrieve information about
+     *      the corresponding injected event_whenbroadcastreceived blocks.
      * @param {string!} broadcastNextBlockId -
      *      the id of the block that comes right after the event_whenbroadcastreceived block.
      * @param {string?} possiblyPresetBroadcastMessage - broadcast message of the event_whenbroadcastreceived block.
      * @private
      */
-    _insertBroadcastThread (util, spriteToInjectId, injecterBlockId, broadcastNextBlockId, possiblyPresetBroadcastMessage) {
+    _injectBroadcastThread (util, spriteToInjectId, injecterBlockId, broadcastNextBlockId, possiblyPresetBroadcastMessage) {
         const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
-        // always use the same broadcast message for the same spriteFilter block insertion
+        // always use the same broadcast message for the same spriteFilter block injection
         const {whenBroadcastReceivedId, broadcastMessage} = this._createWhenBroadcastReceivedBlock(
             spriteToInject.blocks, broadcastNextBlockId, possiblyPresetBroadcastMessage);
         // save message that needs to be broadcast to execute the injected blocks
-        this.inserterBlockIdToInsertedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.getName()] =
+        this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.getName()] =
             broadcastMessage;
         // save id of the event_whenbroadcastreceived block that corresponds to the spriteFilter block
-        this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId][spriteToInject.getName()] =
+        this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteToInject.getName()] =
             whenBroadcastReceivedId;
     }
 
@@ -767,7 +767,7 @@ class Scratch3ItchBlocks {
             // Add them
             for (const spriteTarget of sprites) {
                 spriteTarget.blocks._addScript(
-                    this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId][spriteTarget.getName()]
+                    this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteTarget.getName()]
                 );
                 spriteTarget.blocks.resetCache();
             }
@@ -782,7 +782,7 @@ class Scratch3ItchBlocks {
             // Once started, delete them
             for (const spriteTarget of sprites) {
                 spriteTarget.blocks._deleteScript(
-                    this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId][spriteTarget.getName()]
+                    this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteTarget.getName()]
                 );
                 spriteTarget.blocks.resetCache();
             }
@@ -811,7 +811,7 @@ class Scratch3ItchBlocks {
     namedAssert (args, util) {
         const tree = this._getCurrentFeedbackTree(util);
         // create a new node in the feedback tree and push it to the parseStack
-        tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.NAME));
+        tree.getParseStack().push(tree.peekParseStack().inject(this._getCurrentBlockId(util), args.NAME));
         if (!args.ASSERT_CONDITION) {
             tree.peekParseStack().groupFailed();
         }
@@ -840,7 +840,7 @@ class Scratch3ItchBlocks {
         } else {
             // step into
             // create a new node (group) in the feedback tree and push it to the parseStack
-            tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.GROUP_NAME));
+            tree.getParseStack().push(tree.peekParseStack().inject(this._getCurrentBlockId(util), args.GROUP_NAME));
 
             // Say it is a loop so this function is called again,
             // but when it is called again do the first part of this if-else
@@ -855,7 +855,7 @@ class Scratch3ItchBlocks {
      * @param {BlockUtility} util - the util.
      */
     forSpriteDo (args, util) {
-        // If the target sprite is the same as the sprite the test code is running in, don't do any insertion,
+        // If the target sprite is the same as the sprite the test code is running in, don't do any injection,
         // just execute blocks.
         if (args.SPRITE === util.target.getName()) {
             util.startBranch(1, false);
@@ -873,13 +873,13 @@ class Scratch3ItchBlocks {
         // If we have not injected the testcode into the target sprite, inject it.
         // This is done the first time the first withSpriteDo block is executed in the test thread.
         // TODO: what about clones?
-        this._insertAllCodeIfNeeded(util, spriteTarget.id);
+        this._injectAllCodeIfNeeded(util, spriteTarget.id);
 
         // If we have not injected the event_whenbroadcastreceived block with the corresponding following blocks
         // into the target sprite yet, inject it and save the broadcast message.
         // This is done the first time for every withSpriteDo block that is executed in the test thread.
         if (!this._broadcastReceivedBlockIsPresent(util, spriteTarget.id, currentBlockId)) {
-            this._insertBroadcastThread(util, spriteTarget.id, currentBlockId, firstBranchBlockId);
+            this._injectBroadcastThread(util, spriteTarget.id, currentBlockId, firstBranchBlockId);
         }
 
         // The remaining code is for starting the thread that waits for the broadcast message.
@@ -889,7 +889,7 @@ class Scratch3ItchBlocks {
             util,
             [spriteTarget],
             currentBlockId,
-            this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId][spriteTarget.getName()]
+            this.injecterBlockIdToInjectedSpriteToBroadcastMessage[currentBlockId][spriteTarget.getName()]
         );
 
         this._waitForStartedThreads(util);
@@ -914,27 +914,27 @@ class Scratch3ItchBlocks {
         const currentBlockId = this._getCurrentBlockId(util);
         const booleanStatementBlock = util.thread.target.blocks.getBlock(currentBlockId).inputs.CONDITION.block;
 
-        if (Object.keys(this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult)
+        if (Object.keys(this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult)
             .includes(booleanStatementBlock) && !util.stackFrame.inOriginalBlock) {
-            // We are executing an inserted block, thus all we need to do is save the result
+            // We are executing an injected block, thus all we need to do is save the result
             // of the condition for the sprite we are in.
-            this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult[booleanStatementBlock][util.target.id] =
+            this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock][util.target.id] =
                 args.CONDITION;
             return;
         }
 
         // From here on out the code in this function is always being executed in the original block.
         util.stackFrame.inOriginalBlock = true;
-        if (!this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult[booleanStatementBlock]) {
-            this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult[booleanStatementBlock] = {};
+        if (!this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock]) {
+            this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock] = {};
         }
 
 
         const broadcastMessage = v4();
         for (const spriteTarget of sprites) {
             if (spriteTarget.id === util.target.id) {
-                // Dont insert into test sprite, just save condition result
-                this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult[booleanStatementBlock][spriteTarget] =
+                // Dont inject into test sprite, just save condition result
+                this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock][spriteTarget] =
                     args.CONDITION;
                 continue;
             }
@@ -942,16 +942,16 @@ class Scratch3ItchBlocks {
             // This is done the first time an injection block is executed in the test thread.
             // TODO: what about clones?
             // TODO: use target id, not name
-            this._insertAllCodeIfNeeded(util, spriteTarget.id);
+            this._injectAllCodeIfNeeded(util, spriteTarget.id);
 
             // If we have not injected the event_whenbroadcastreceived block with the corresponding following block
             // into the target sprite yet, inject it and save the broadcast message.
             // This is done the first time for every spriteFilter block that is executed in the test thread.
             if (!this._broadcastReceivedBlockIsPresent(util, spriteTarget.id, currentBlockId)) {
-                // Take the inserted spriteFilter from the inserted testcode,
+                // Take the injected spriteFilter from the injected testcode,
                 // so we can add the event_whenbroadcastreceived as its parent.
                 this._sliceBlock(spriteTarget, currentBlockId);
-                this._insertBroadcastThread(util, spriteTarget.id, currentBlockId, currentBlockId, broadcastMessage);
+                this._injectBroadcastThread(util, spriteTarget.id, currentBlockId, currentBlockId, broadcastMessage);
             }
         }
 
@@ -963,7 +963,7 @@ class Scratch3ItchBlocks {
             sprites.filter(sprite => sprite.id !== util.target.id),
             currentBlockId,
             // all broadcast messages are the same, so just take the first ones
-            Object.values(this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId])[0]
+            Object.values(this.injecterBlockIdToInjectedSpriteToBroadcastMessage[currentBlockId])[0]
         );
 
         // wait for started threads, when done waiting, use boolean condition results from all sprites to filter them
@@ -971,7 +971,7 @@ class Scratch3ItchBlocks {
             const list = util.target.lookupVariableByNameAndType(args.SELECTED_LIST, Variable.LIST_TYPE, false);
             sprites
                 .filter(sprite =>
-                    this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult[booleanStatementBlock][sprite.id])
+                    this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock][sprite.id])
                 .forEach(sprite => list.value.push(sprite.getName()));
             list._monitorUpToDate = false;
         }
