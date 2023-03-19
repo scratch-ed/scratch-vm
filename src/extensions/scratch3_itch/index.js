@@ -630,6 +630,127 @@ class Scratch3ItchBlocks {
     }
 
     /**
+     * Inject all code of util.target into spriteToInject (usually this is to inject all testcode).
+     * @param {BlockUtility!} util - the block utility object.µ
+     * @param {string!} spriteToInjectId - the sprite to inject the code into.
+     * @private
+     */
+    _insertAllCodeIfNeeded (util, spriteToInjectId) {
+        const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
+        if (!this.testCodeInjected.includes(spriteToInject.getName())) {
+            const duplicatedBlocks = util.thread.target.blocks.duplicate();
+            spriteToInject.blocks._blocks = Object.assign(spriteToInject.blocks._blocks, duplicatedBlocks._blocks);
+            // Set "When tests started" block that was copied to spriteTarget lopLevel field to false
+            // to avoid accidental execution and make it invisible to the user.
+            spriteToInject.blocks._blocks[util.thread.topBlock].topLevel = false;
+            this.testCodeInjected.push(spriteToInject.getName());
+        }
+    }
+
+    /**
+     * Check if the broadcast received block and its following blocks are present in the spriteToInject.
+     * @param {BlockUtility!} util - the block utility object.
+     * @param {string!} spriteToInjectId - id of the sprite to check if the broadcast received block is present in.
+     * @param {string!} injecterBlockId - an id of an inserter block used to retrieve information about
+     *      the corresponding inserted event_whenbroadcastreceived blocks.
+     * @returns {boolean} - true if broadcast thread is present, false otherwise.
+     * @private
+     */
+    _broadcastReceivedBlockIsPresent (util, spriteToInjectId, injecterBlockId) {
+        const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
+        if (!this.inserterBlockIdToInsertedSpriteToBroadcastMessage[injecterBlockId]) {
+            this.inserterBlockIdToInsertedSpriteToBroadcastMessage[injecterBlockId] = {};
+        }
+        if (!this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId]) {
+            this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId] = {};
+        }
+        return this.inserterBlockIdToInsertedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.getName()] !==
+            undefined;
+    }
+
+    /**
+     * Insert a broadcast received block and its following blocks into the spriteToInject.
+     * @param {BlockUtility!} util - the block utility object.
+     * @param {string!} spriteToInjectId - id of the sprite to check if the broadcast received block is present in.
+     * @param {string!} injecterBlockId - an id of an inserter block used to retrieve information about
+     *      the corresponding inserted event_whenbroadcastreceived blocks.
+     * @param {string!} broadcastNextBlockId -
+     *      the id of the block that comes right after the event_whenbroadcastreceived block.
+     * @param {string?} possiblyPresetBroadcastMessage - broadcast message of the event_whenbroadcastreceived block.
+     * @private
+     */
+    _insertBroadcastThread (util, spriteToInjectId, injecterBlockId, broadcastNextBlockId, possiblyPresetBroadcastMessage) {
+        const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
+        // always use the same broadcast message for the same spriteFilter block insertion
+        const {whenBroadcastReceivedId, broadcastMessage} = this._createWhenBroadcastReceivedBlock(
+            spriteToInject.blocks, broadcastNextBlockId, possiblyPresetBroadcastMessage);
+        // save message that needs to be broadcast to execute the injected blocks
+        this.inserterBlockIdToInsertedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.getName()] =
+            broadcastMessage;
+        // save id of the event_whenbroadcastreceived block that corresponds to the spriteFilter block
+        this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId][spriteToInject.getName()] =
+            whenBroadcastReceivedId;
+    }
+
+    /**
+     * Adds a when broadcast received block to the given blocks with a random uuidv4 message.
+     * @param {Blocks!} blocks - a blocks object of a sprite.
+     * @param {string!} nextId - id of the block underneath the broadcast block.
+     * @param {string?} broadcastMessage - possible broadcast message, if given, do not generate unique one.
+     * @returns {{whenBroadcastReceivedId: string, broadcastMessage: string}} - the id of the broadcast received block
+     *      and the message its waits for.
+     * @private
+     */
+    _createWhenBroadcastReceivedBlock (blocks, nextId, broadcastMessage) {
+        // Example of json passed to createBlock when creating a event_whenbroadcastreceived block.
+        //  {
+        //      id: "jd7GP7cdZ?Lx0h4|q/vX",
+        //      opcode: "event_whenbroadcastreceived",
+        //      inputs: {},
+        //      fields: {
+        //          "BROADCAST_OPTION": {
+        //              "name": "BROADCAST_OPTION",
+        //              "id": "q9D[^gy67My1|kG5t8,O",
+        //              "value": "message1",
+        //              "variableType": "broadcast_msg"
+        //          }
+        //      },
+        //      next: null,
+        //      topLevel: true,
+        //      parent: null,
+        //      shadow: false,
+        //      x: "-342",
+        //      y: "539"
+        //  }
+        if (!broadcastMessage) broadcastMessage = v4();
+        const whenBroadcastReceivedId = v4();
+        const blockJson = {
+            id: whenBroadcastReceivedId,
+            opcode: 'event_whenbroadcastreceived',
+            inputs: {},
+            fields: {
+                BROADCAST_OPTION: {
+                    name: 'BROADCAST_OPTION',
+                    id: v4(),
+                    value: broadcastMessage,
+                    variableType: 'broadcast_msg'
+                }
+            },
+            next: nextId,
+            // Setting topLevel to false makes sure it is not added to blocks._scripts.
+            // It also causes it to not be executable, so we manually add and delete it from blocks._scripts later.
+            topLevel: false,
+            parent: null,
+            shadow: false,
+            x: '0',
+            y: '0'
+        };
+        blocks.createBlock(blockJson);
+        blocks._blocks[nextId].parent = whenBroadcastReceivedId;
+        return {whenBroadcastReceivedId: whenBroadcastReceivedId, broadcastMessage: broadcastMessage};
+    }
+
+    /**
      * Implement assert.
      * @param {object} args - the block's arguments.
      * @param {BlockUtility} util - the block utility object.
@@ -688,63 +809,6 @@ class Scratch3ItchBlocks {
         }
     }
 
-    /**
-     * Adds a when broadcast received block to the given blocks with a random uuidv4 message.
-     * @param {Blocks!} blocks - a blocks object of a sprite.
-     * @param {string!} nextId - id of the block underneath the broadcast block.
-     * @param {string?} message - possible broadcast message, if given, do not generate unique one.
-     * @returns {{whenBroadcastReceivedId: string, message: string}} - the id of the broadcast received block
-     *      and the message its waits for.
-     * @private
-     */
-    _createWhenBroadcastReceivedBlock (blocks, nextId, message) {
-        // Example of json passed to createBlock when creating a event_whenbroadcastreceived block.
-        //  {
-        //      id: "jd7GP7cdZ?Lx0h4|q/vX",
-        //      opcode: "event_whenbroadcastreceived",
-        //      inputs: {},
-        //      fields: {
-        //          "BROADCAST_OPTION": {
-        //              "name": "BROADCAST_OPTION",
-        //              "id": "q9D[^gy67My1|kG5t8,O",
-        //              "value": "message1",
-        //              "variableType": "broadcast_msg"
-        //          }
-        //      },
-        //      next: null,
-        //      topLevel: true,
-        //      parent: null,
-        //      shadow: false,
-        //      x: "-342",
-        //      y: "539"
-        //  }
-        if (!message) message = v4();
-        const whenBroadcastReceivedId = v4();
-        const blockJson = {
-            id: whenBroadcastReceivedId,
-            opcode: 'event_whenbroadcastreceived',
-            inputs: {},
-            fields: {
-                BROADCAST_OPTION: {
-                    name: 'BROADCAST_OPTION',
-                    id: v4(),
-                    value: message,
-                    variableType: 'broadcast_msg'
-                }
-            },
-            next: nextId,
-            // Setting topLevel to false makes sure it is not added to blocks._scripts.
-            // It also causes it to not be executable, so we manually add and delete it from blocks._scripts later.
-            topLevel: false,
-            parent: null,
-            shadow: false,
-            x: '0',
-            y: '0'
-        };
-        blocks.createBlock(blockJson);
-        blocks._blocks[nextId].parent = whenBroadcastReceivedId;
-        return {whenBroadcastReceivedId: whenBroadcastReceivedId, message: message};
-    }
 
     /**
      * Implement forSpriteDo.
@@ -775,19 +839,8 @@ class Scratch3ItchBlocks {
         // If we have not injected the event_whenbroadcastreceived block with the corresponding following blocks
         // into the target sprite yet, inject it and save the broadcast message.
         // This is done the first time for every withSpriteDo block that is executed in the test thread.
-        if (!this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId]) {
-            this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId] = {};
-        }
-        if (!this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId]) {
-            this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId] = {};
-        }
-        if (!this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId][args.SPRITE]) {
-            const {whenBroadcastReceivedId, message} =
-                this._createWhenBroadcastReceivedBlock(spriteTarget.blocks, firstBranchBlockId);
-            // save message that needs to be broadcast to execute the injected blocks
-            this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId][args.SPRITE] = message;
-            // save id of the event_whenbroadcastreceived block that corresponds to the withSpriteDo block
-            this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId][args.SPRITE] = whenBroadcastReceivedId;
+        if (!this._broadcastReceivedBlockIsPresent(util, spriteTarget.id, currentBlockId)) {
+            this._insertBroadcastThread(util, spriteTarget.id, currentBlockId, firstBranchBlockId);
         }
 
         // The remaining code is for starting the thread that waits for the broadcast message.
@@ -875,26 +928,11 @@ class Scratch3ItchBlocks {
             // If we have not injected the event_whenbroadcastreceived block with the corresponding following block
             // into the target sprite yet, inject it and save the broadcast message.
             // This is done the first time for every spriteFilter block that is executed in the test thread.
-            if (!this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId]) {
-                this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId] = {};
-            }
-            if (!this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId]) {
-                this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId] = {};
-            }
-            if (!this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId][spriteTarget.getName()]) {
+            if (!this._broadcastReceivedBlockIsPresent(util, spriteTarget.id, currentBlockId)) {
                 // Take the inserted spriteFilter from the inserted testcode,
                 // so we can add the event_whenbroadcastreceived as its parent.
                 this._sliceBlock(spriteTarget, currentBlockId);
-
-                // always use the same broadcast message for the same spriteFilter block insertion
-                const {whenBroadcastReceivedId, _} =
-                    this._createWhenBroadcastReceivedBlock(spriteTarget.blocks, currentBlockId, broadcastMessage);
-                // save message that needs to be broadcast to execute the injected blocks
-                this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId][spriteTarget.getName()] =
-                    broadcastMessage;
-                // save id of the event_whenbroadcastreceived block that corresponds to the spriteFilter block
-                this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId][spriteTarget.getName()] =
-                    whenBroadcastReceivedId;
+                this._insertBroadcastThread(util, spriteTarget.id, currentBlockId, currentBlockId, broadcastMessage);
             }
         }
 
@@ -943,24 +981,6 @@ class Scratch3ItchBlocks {
                     this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult[booleanStatementBlock][sprite.id])
                 .forEach(sprite => list.value.push(sprite.getName()));
             list._monitorUpToDate = false;
-        }
-    }
-
-    /**
-     * Inject all code of util.target into spriteToInject (usually this is to inject all testcode).
-     * @param {BlockUtility!} util - the block utility object.µ
-     * @param {string!} spriteToInjectId - the sprite to inject the code into.
-     * @private
-     */
-    _insertAllCodeIfNeeded (util, spriteToInjectId) {
-        const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
-        if (!this.testCodeInjected.includes(spriteToInject.getName())) {
-            const duplicatedBlocks = util.thread.target.blocks.duplicate();
-            spriteToInject.blocks._blocks = Object.assign(spriteToInject.blocks._blocks, duplicatedBlocks._blocks);
-            // Set "When tests started" block that was copied to spriteTarget lopLevel field to false
-            // to avoid accidental execution and make it invisible to the user.
-            spriteToInject.blocks._blocks[util.thread.topBlock].topLevel = false;
-            this.testCodeInjected.push(spriteToInject.getName());
         }
     }
 
