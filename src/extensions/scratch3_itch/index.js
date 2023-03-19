@@ -1,7 +1,7 @@
 // Core, Team, and Official extensions can `require` VM code:
 const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
-const {v4} = require('uuid'); // TODO: use scratch uid() function defined in src/util/uid.js
+const uid = require('../../util/uid.js');
 // const TargetType = require('../../extension-support/target-type');
 
 // ...or VM dependencies:
@@ -10,12 +10,6 @@ const formatMessage = require('format-message');
 const TreeNode = require('./FeedbackTree');
 
 const Variable = require('../../engine/variable');
-//
-// const judge = require('@ftrprf/judge-core');
-// // const WhenPressKeyAction = require('@ftrprf/judge-core/src/actions/WhenPressKeyAction');
-//
-// // const ScheduledEvent = require('@ftrprf/judge-core/src/');
-// import {ScheduledEvent} from '@ftrprf/judge-core/src/scheduler/scheduled-event.ts';
 
 const stageProperties = [
     'backdrop #',
@@ -693,7 +687,7 @@ class Scratch3ItchBlocks {
     }
 
     /**
-     * Adds a when broadcast received block to the given blocks with a random uuidv4 message.
+     * Adds a when broadcast received block to the given blocks.
      * @param {Blocks!} blocks - a blocks object of a sprite.
      * @param {string!} nextId - id of the block underneath the broadcast block.
      * @param {string?} broadcastMessage - possible broadcast message, if given, do not generate unique one.
@@ -722,8 +716,8 @@ class Scratch3ItchBlocks {
         //      x: "-342",
         //      y: "539"
         //  }
-        if (!broadcastMessage) broadcastMessage = v4();
-        const whenBroadcastReceivedId = v4();
+        if (!broadcastMessage) broadcastMessage = uid();
+        const whenBroadcastReceivedId = uid();
         const blockJson = {
             id: whenBroadcastReceivedId,
             opcode: 'event_whenbroadcastreceived',
@@ -731,7 +725,7 @@ class Scratch3ItchBlocks {
             fields: {
                 BROADCAST_OPTION: {
                     name: 'BROADCAST_OPTION',
-                    id: v4(),
+                    id: uid(),
                     value: broadcastMessage,
                     variableType: 'broadcast_msg'
                 }
@@ -930,7 +924,7 @@ class Scratch3ItchBlocks {
         }
 
 
-        const broadcastMessage = v4();
+        const broadcastMessage = uid();
         for (const spriteTarget of sprites) {
             if (spriteTarget.id === util.target.id) {
                 // Dont inject into test sprite, just save condition result
