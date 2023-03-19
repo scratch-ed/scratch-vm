@@ -101,16 +101,16 @@ class Scratch3ItchBlocks {
         // At the moment this seems to be the best way to do this, but it is not very clean since the injected blocks
         // of the last execution are not deleted.
         for (const spriteName of this.testCodeInjected) {
-            // todo: when new project is loaded or sprites are deleted, getSpriteTargetByName is undefined
-            const sprite = this.runtime.getTargetById(this.runtime.getSpriteTargetByName(spriteName).id);
+            const sprite = this.runtime.getSpriteTargetByName(spriteName);
             // Delete injected test code
-            sprite.blocks.deleteBlock(testThreadTopBlock);
+            if (sprite) sprite.blocks.deleteBlock(testThreadTopBlock);
         }
 
         // Delete injected broadcast blocks
         for (const spriteNameToBroadcastId of Object.values(this.injecterBlockIdToInjectedSpriteToBroadcastId)) {
             for (const spriteName of Object.keys(spriteNameToBroadcastId)) {
-                this.runtime.getSpriteTargetByName(spriteName).blocks.deleteBlock(spriteNameToBroadcastId[spriteName]);
+                const sprite = this.runtime.getSpriteTargetByName(spriteName);
+                if (sprite) sprite.blocks.deleteBlock(spriteNameToBroadcastId[spriteName]);
             }
         }
         // check if injection cleanup was done correctly
@@ -124,7 +124,11 @@ class Scratch3ItchBlocks {
     _checkCorrectCleanup () {
         for (const targetId of Object.keys(this.spriteToPreInjectionBlockCount)) {
             const target = this.runtime.getTargetById(targetId);
-            // TODO: when project is reloaded, or new project is loaded, target is undefined
+            if (!target) {
+                // target was deleted
+                delete this.spriteToPreInjectionBlockCount[targetId];
+                continue;
+            }
             const initialBlockCount = this.spriteToPreInjectionBlockCount[target.id];
             const currentBlockCount = Object.keys(target.blocks._blocks).length;
             if (initialBlockCount < currentBlockCount) {
