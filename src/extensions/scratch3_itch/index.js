@@ -751,6 +751,45 @@ class Scratch3ItchBlocks {
     }
 
     /**
+     * Start all injected threads with message broadcastMessage
+     * @param {BlockUtility!} util - the block utility object.
+     * @param {[Target]!} sprites - the sprites to add and remove hidden broadcast threads in.
+     * @param {string!} injecterBlockId - the id of the block that injected the broadcast threads.
+     * @param {string!} broadcastMessage - the message to broadcast.
+     * @private
+     */
+    _runInjectedBroadcastThreadsIfNeeded (util, sprites, injecterBlockId, broadcastMessage) {
+        // Have we started the injected broadcast blocks yet?
+        if (!util.stackFrame.startedThreads) {
+            // No - start hats for this broadcast.
+
+            // We add and delete the event_whenbroadcastreceived scripts to avoid it being shown to the user.
+            // Add them
+            for (const spriteTarget of sprites) {
+                spriteTarget.blocks._addScript(
+                    this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId][spriteTarget.getName()]
+                );
+                spriteTarget.blocks.resetCache();
+            }
+
+            // Start all broadcast threads with the same message
+            util.stackFrame.startedThreads = util.startHats(
+                'event_whenbroadcastreceived', {
+                    BROADCAST_OPTION: broadcastMessage
+                }
+            );
+
+            // Once started, delete them
+            for (const spriteTarget of sprites) {
+                spriteTarget.blocks._deleteScript(
+                    this.inserterBlockIdToInsertedSpriteToBroadcastId[injecterBlockId][spriteTarget.getName()]
+                );
+                spriteTarget.blocks.resetCache();
+            }
+        }
+    }
+
+    /**
      * Implement assert.
      * @param {object} args - the block's arguments.
      * @param {BlockUtility} util - the block utility object.
@@ -846,32 +885,12 @@ class Scratch3ItchBlocks {
         // The remaining code is for starting the thread that waits for the broadcast message.
         // and waiting until it is done.
 
-        // Have we run before, starting threads?
-        if (!util.stackFrame.startedThreads) {
-            // No - start hats for this broadcast.
-            // We add and delete the whenbroadcastreceived script to avoid it being shown to the user.
-            spriteTarget.blocks._addScript(
-                this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId][args.SPRITE]
-            );
-            spriteTarget.blocks.resetCache();
-
-            util.stackFrame.startedThreads = util.startHats(
-                'event_whenbroadcastreceived', {
-                    BROADCAST_OPTION:
-                        this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId][args.SPRITE]
-                }
-            );
-
-            spriteTarget.blocks._deleteScript(
-                this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId][args.SPRITE]
-            );
-            spriteTarget.blocks.resetCache();
-
-            if (util.stackFrame.startedThreads.length === 0) {
-                // Nothing was started.
-                return;
-            }
-        }
+        this._runInjectedBroadcastThreadsIfNeeded(
+            util,
+            [spriteTarget],
+            currentBlockId,
+            this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId][spriteTarget.getName()]
+        );
 
         this._waitForStartedThreads(util);
     }
@@ -939,39 +958,13 @@ class Scratch3ItchBlocks {
         // The remaining code is for starting the thread that waits for the broadcast message.
         // and waiting until it is done.
 
-        // Have we started the injected broadcast blocks yet?
-        if (!util.stackFrame.startedThreads) {
-            // No - start hats for this broadcast.
-            // We add and delete the whenbroadcastreceived script to avoid it being shown to the user.
-            for (const spriteTarget of sprites) {
-                if (spriteTarget.id === util.target.id) continue;
-                spriteTarget.blocks._addScript(
-                    this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId][spriteTarget.getName()]
-                );
-                spriteTarget.blocks.resetCache();
-            }
-
-            // start all broadcast threads with the same message
-            util.stackFrame.startedThreads = util.startHats(
-                'event_whenbroadcastreceived', {
-                    BROADCAST_OPTION:
-                        Object.values(this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId])[0]
-                }
-            );
-
-            for (const spriteTarget of sprites) {
-                if (spriteTarget.id === util.target.id) continue;
-                spriteTarget.blocks._deleteScript(
-                    this.inserterBlockIdToInsertedSpriteToBroadcastId[currentBlockId][spriteTarget.getName()]
-                );
-                spriteTarget.blocks.resetCache();
-            }
-
-            if (util.stackFrame.startedThreads.length === 0) {
-                // Nothing was started.
-                return;
-            }
-        }
+        this._runInjectedBroadcastThreadsIfNeeded(
+            util,
+            sprites.filter(sprite => sprite.id !== util.target.id),
+            currentBlockId,
+            // all broadcast messages are the same, so just take the first ones
+            Object.values(this.inserterBlockIdToInsertedSpriteToBroadcastMessage[currentBlockId])[0]
+        );
 
         // wait for started threads, when done waiting, use boolean condition results from all sprites to filter them
         if (!this._waitForStartedThreads(util)) {
