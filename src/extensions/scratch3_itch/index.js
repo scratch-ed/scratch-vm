@@ -130,6 +130,7 @@ class Scratch3ItchBlocks {
     _checkCorrectCleanup () {
         for (const targetId of Object.keys(this.spriteToPreInjectionBlockCount)) {
             const target = this.runtime.getTargetById(targetId);
+            // TODO: when project is reloaded, or new project is loaded, target is undefined
             const initialBlockCount = this.spriteToPreInjectionBlockCount[target.id];
             const currentBlockCount = Object.keys(target.blocks._blocks).length;
             if (initialBlockCount < currentBlockCount) {
@@ -745,51 +746,6 @@ class Scratch3ItchBlocks {
         return {whenBroadcastReceivedId: whenBroadcastReceivedId, message: message};
     }
 
-    _createBroadcastAndWaitBlock (blocks, parentBlockId, message) {
-        const menuId = v4();
-        const blockId = v4();
-
-        const block = {
-            id: blockId,
-            opcode: 'event_broadcastandwait',
-            inputs: {
-                BROADCAST_INPUT: {
-                    name: 'BROADCAST_INPUT',
-                    block: menuId,
-                    shadow: menuId
-                }
-            },
-            fields: {},
-            next: null,
-            topLevel: true,
-            parent: null,
-            shadow: false,
-            x: 0,
-            y: 0
-        };
-        const menu = {
-            id: menuId,
-            opcode: 'event_broadcast_menu',
-            inputs: {},
-            fields: {
-                BROADCAST_OPTION: {
-                    name: 'BROADCAST_OPTION',
-                    id: v4(),
-                    value: message,
-                    variableType: 'broadcast_msg'
-                }
-            },
-            next: null,
-            topLevel: false,
-            parent: blockId,
-            shadow: true
-        };
-
-        blocks.createBlock(menu);
-        blocks.createBlock(block);
-        return blockId;
-    }
-
     /**
      * Implement forSpriteDo.
      * @param {object} args - the block's arguments.
@@ -814,14 +770,7 @@ class Scratch3ItchBlocks {
         // If we have not injected the testcode into the target sprite, inject it.
         // This is done the first time the first withSpriteDo block is executed in the test thread.
         // TODO: what about clones?
-        if (!this.testCodeInjected.includes(args.SPRITE)) {
-            const duplicatedBlocks = util.thread.target.blocks.duplicate();
-            spriteTarget.blocks._blocks = Object.assign(spriteTarget.blocks._blocks, duplicatedBlocks._blocks);
-            // Set "When tests started" block that was copied to spriteTarget lopLevel field to false
-            // to avoid accidental execution and make it invisible to the user.
-            spriteTarget.blocks._blocks[util.thread.topBlock].topLevel = false;
-            this.testCodeInjected.push(args.SPRITE);
-        }
+        this._insertAllCodeIfNeeded(util, spriteTarget.id);
 
         // If we have not injected the event_whenbroadcastreceived block with the corresponding following blocks
         // into the target sprite yet, inject it and save the broadcast message.
@@ -921,14 +870,7 @@ class Scratch3ItchBlocks {
             // This is done the first time an injection block is executed in the test thread.
             // TODO: what about clones?
             // TODO: use target id, not name
-            if (!this.testCodeInjected.includes(spriteTarget.getName())) {
-                const duplicatedBlocks = util.thread.target.blocks.duplicate();
-                spriteTarget.blocks._blocks = Object.assign(spriteTarget.blocks._blocks, duplicatedBlocks._blocks);
-                // Set "When tests started" block that was copied to spriteTarget lopLevel field to false
-                // to avoid accidental execution and make it invisible to the user.
-                spriteTarget.blocks._blocks[util.thread.topBlock].topLevel = false;
-                this.testCodeInjected.push(spriteTarget.getName());
-            }
+            this._insertAllCodeIfNeeded(util, spriteTarget.id);
 
             // If we have not injected the event_whenbroadcastreceived block with the corresponding following block
             // into the target sprite yet, inject it and save the broadcast message.
@@ -1001,6 +943,24 @@ class Scratch3ItchBlocks {
                     this.insertedBooleanBlockIdToInsertedSpriteToBooleanBlockResult[booleanStatementBlock][sprite.id])
                 .forEach(sprite => list.value.push(sprite.getName()));
             list._monitorUpToDate = false;
+        }
+    }
+
+    /**
+     * Inject all code of util.target into spriteToInject (usually this is to inject all testcode).
+     * @param {BlockUtility!} util - the block utility object.µ
+     * @param {string!} spriteToInjectId - the sprite to inject the code into.
+     * @private
+     */
+    _insertAllCodeIfNeeded (util, spriteToInjectId) {
+        const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
+        if (!this.testCodeInjected.includes(spriteToInject.getName())) {
+            const duplicatedBlocks = util.thread.target.blocks.duplicate();
+            spriteToInject.blocks._blocks = Object.assign(spriteToInject.blocks._blocks, duplicatedBlocks._blocks);
+            // Set "When tests started" block that was copied to spriteTarget lopLevel field to false
+            // to avoid accidental execution and make it invisible to the user.
+            spriteToInject.blocks._blocks[util.thread.topBlock].topLevel = false;
+            this.testCodeInjected.push(spriteToInject.getName());
         }
     }
 
