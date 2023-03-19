@@ -73,12 +73,12 @@ class Scratch3ItchBlocks {
         // Clear datastructures
         // List of sprites where the test code is already injected into.
         this.testCodeInjected = [];
-        // injecter block -> injected sprite -> broadcast message
+        // injecter block id -> injected sprite id -> broadcast message
         this.injecterBlockIdToInjectedSpriteToBroadcastMessage = {};
-        // injecter block -> injected sprite -> event_whenbroadcastreceived block id
+        // injecter block id -> injected sprite id -> event_whenbroadcastreceived block id
         this.injecterBlockIdToInjectedSpriteToBroadcastId = {};
         // Ids of the boolean conditions that are already injected
-        // boolean condition block id -> injected sprite -> result of boolean condition
+        // boolean condition block id -> injected sprite id -> result of boolean condition
         this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult = {};
     }
 
@@ -108,9 +108,9 @@ class Scratch3ItchBlocks {
 
         // Delete injected broadcast blocks
         for (const spriteNameToBroadcastId of Object.values(this.injecterBlockIdToInjectedSpriteToBroadcastId)) {
-            for (const spriteName of Object.keys(spriteNameToBroadcastId)) {
-                const sprite = this.runtime.getSpriteTargetByName(spriteName);
-                if (sprite) sprite.blocks.deleteBlock(spriteNameToBroadcastId[spriteName]);
+            for (const id of Object.keys(spriteNameToBroadcastId)) {
+                const sprite = this.runtime.getTargetById(id);
+                if (sprite) sprite.blocks.deleteBlock(spriteNameToBroadcastId[id]);
             }
         }
         // check if injection cleanup was done correctly
@@ -659,10 +659,7 @@ class Scratch3ItchBlocks {
         if (!this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId]) {
             this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId] = {};
         }
-        if (!this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId]) {
-            this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId] = {};
-        }
-        return this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.getName()] !==
+        return this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.id] !==
             undefined;
     }
 
@@ -678,15 +675,18 @@ class Scratch3ItchBlocks {
      * @private
      */
     _injectBroadcastThread (util, spriteToInjectId, injecterBlockId, broadcastNextBlockId, possiblyPresetBroadcastMessage) {
+        if (!this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId]) {
+            this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId] = {};
+        }
         const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
         // always use the same broadcast message for the same spriteFilter block injection
         const {whenBroadcastReceivedId, broadcastMessage} = this._createWhenBroadcastReceivedBlock(
             spriteToInject.blocks, broadcastNextBlockId, possiblyPresetBroadcastMessage);
         // save message that needs to be broadcast to execute the injected blocks
-        this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.getName()] =
+        this.injecterBlockIdToInjectedSpriteToBroadcastMessage[injecterBlockId][spriteToInject.id] =
             broadcastMessage;
         // save id of the event_whenbroadcastreceived block that corresponds to the spriteFilter block
-        this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteToInject.getName()] =
+        this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteToInject.id] =
             whenBroadcastReceivedId;
     }
 
@@ -765,7 +765,7 @@ class Scratch3ItchBlocks {
             // Add them
             for (const spriteTarget of sprites) {
                 spriteTarget.blocks._addScript(
-                    this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteTarget.getName()]
+                    this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteTarget.id]
                 );
                 spriteTarget.blocks.resetCache();
             }
@@ -780,7 +780,7 @@ class Scratch3ItchBlocks {
             // Once started, delete them
             for (const spriteTarget of sprites) {
                 spriteTarget.blocks._deleteScript(
-                    this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteTarget.getName()]
+                    this.injecterBlockIdToInjectedSpriteToBroadcastId[injecterBlockId][spriteTarget.id]
                 );
                 spriteTarget.blocks.resetCache();
             }
@@ -887,7 +887,7 @@ class Scratch3ItchBlocks {
             util,
             [spriteTarget],
             currentBlockId,
-            this.injecterBlockIdToInjectedSpriteToBroadcastMessage[currentBlockId][spriteTarget.getName()]
+            this.injecterBlockIdToInjectedSpriteToBroadcastMessage[currentBlockId][spriteTarget.id]
         );
 
         this._waitForStartedThreads(util);
@@ -923,16 +923,15 @@ class Scratch3ItchBlocks {
 
         // From here on out the code in this function is always being executed in the original block.
         util.stackFrame.inOriginalBlock = true;
+
         if (!this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock]) {
             this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock] = {};
         }
-
-
         const broadcastMessage = uid();
         for (const spriteTarget of sprites) {
             if (spriteTarget.id === util.target.id) {
                 // Dont inject into test sprite, just save condition result
-                this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock][spriteTarget] =
+                this.injectedBooleanBlockIdToInjectedSpriteToBooleanBlockResult[booleanStatementBlock][spriteTarget.id] =
                     args.CONDITION;
                 continue;
             }
