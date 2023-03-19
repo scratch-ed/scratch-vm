@@ -63,6 +63,11 @@ class Scratch3ItchBlocks {
             this._undoInjection(startedThreads[0].topBlock);
             this._clearDataStructures();
         });
+
+        this.questions = [];
+        this.runtime.on('QUESTION', question => {
+            this.questions.push(question);
+        });
     }
 
     /**
@@ -80,6 +85,8 @@ class Scratch3ItchBlocks {
         // Ids of the boolean conditions that are already injected
         // boolean condition block id -> injected sprite id -> result of boolean condition
         this.injectedBooleanBlockIdToInjectedSpriteIdToBooleanBlockResult = {};
+        // list of asked questions that have not been answered
+        this.questions = [];
     }
 
     /**
@@ -330,16 +337,6 @@ class Scratch3ItchBlocks {
                         description: 'Label on the "pressGreenFlag" block'
                     })
                 },
-                // {
-                //     opcode: 'pressGreenFlagAndWait',
-                //     blockType: BlockType.COMMAND,
-                //
-                //     text: formatMessage({
-                //         id: 'pressGreenFlagAndWaitLabel',
-                //         default: 'Press green flag and wait',
-                //         description: 'Label on the "pressGreenFlagAndWait" block'
-                //     })
-                // },
                 {
 
                     opcode: 'moveMouseTo', // becomes 'itch_movemouseto'
@@ -409,6 +406,21 @@ class Scratch3ItchBlocks {
                         },
                         CONDITION: {
                             type: ArgumentType.BOOLEAN
+                        }
+                    }
+                },
+                {
+                    opcode: 'answer',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'answerLabel',
+                        default: 'Answer [ANSWER]',
+                        description: 'Label on the "answer" block'
+                    }),
+                    arguments: {
+                        ANSWER: {
+                            type: ArgumentType.STRING,
+                            defaultValue: ' '
                         }
                     }
                 }
@@ -1060,6 +1072,22 @@ class Scratch3ItchBlocks {
      */
     snapshot () {
         return this._stringifyTargets(this.runtime.targets);
+    }
+
+    /**
+     * Implement answer.
+     * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the util.
+     */
+    answer (args, util) {
+        // if no questions are asked yet, wait for them to be asked
+        if (this.questions.length === 0) {
+            util.yieldTick();
+        }
+        // answer asked question
+        this.runtime.emit('ANSWER', args.ANSWER);
+        this.questions.shift();
+        this.runtime.emitProjectChanged();
     }
 }
 
