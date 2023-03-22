@@ -28,6 +28,7 @@ const spriteProperties = [
     'thinking'
 ];
 const greenFlagIcon = require('./icon--green-flag.svg');
+const redFlagIcon = require('./icon--red-flag.svg');
 
 // a state should also add the variables defined there (see blocks.js in the gui line 230)
 
@@ -227,7 +228,7 @@ class Scratch3ItchBlocks {
                     // must be [ENCLOSED_WITHIN_SQUARE_BRACKETS].
                     text: formatMessage({
                         id: 'assertLabel',
-                        default: 'Assert [ASSERT_CONDITION]',
+                        default: 'assert [ASSERT_CONDITION]',
                         description: 'Label on the "assert" block'
                     }),
 
@@ -254,7 +255,7 @@ class Scratch3ItchBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'namedAssertLabel',
-                        default: 'Assert [ASSERT_CONDITION] named [NAME]',
+                        default: 'assert [ASSERT_CONDITION] named [NAME]',
                         description: 'Label on the "namedAssert" block'
                     }),
                     arguments: {
@@ -276,15 +277,21 @@ class Scratch3ItchBlocks {
                     shouldRestartExistingThreads: true,
                     text: formatMessage({
                         id: 'startTestsLabel',
-                        default: 'When tests started',
+                        default: 'when [IMAGE] clicked',
                         description: 'Label on the "Test flag clicked" block'
-                    })
+                    }),
+                    arguments: {
+                        IMAGE: {
+                            type: ArgumentType.IMAGE,
+                            dataURI: redFlagIcon
+                        }
+                    }
                 },
                 {
                     opcode: 'groupName',
                     blockType: BlockType.CONDITIONAL,
                     branchCount: 1,
-                    text: 'Test group [GROUP_NAME]',
+                    text: 'test group [GROUP_NAME]',
                     arguments: {
                         GROUP_NAME: {
                             type: ArgumentType.STRING,
@@ -296,7 +303,7 @@ class Scratch3ItchBlocks {
                     opcode: 'forSpriteDo',
                     blockType: BlockType.CONDITIONAL,
                     branchCount: 1,
-                    text: 'With [SPRITE] do',
+                    text: 'with [SPRITE] do',
                     arguments: {
                         SPRITE: {
                             type: ArgumentType.STRING,
@@ -310,7 +317,7 @@ class Scratch3ItchBlocks {
 
                     text: formatMessage({
                         id: 'pressKeyLabel',
-                        default: 'Press [KEY] key',
+                        default: 'press [KEY] key',
                         description: 'Label on the "pressKey" block'
                     }),
                     arguments: {
@@ -326,7 +333,7 @@ class Scratch3ItchBlocks {
 
                     text: formatMessage({
                         id: 'pressKeyAndWaitLabel',
-                        default: 'Press [KEY] key and wait',
+                        default: 'press [KEY] key and wait',
                         description: 'Label on the "pressKeyAndWait" block'
                     }),
                     arguments: {
@@ -342,7 +349,7 @@ class Scratch3ItchBlocks {
 
                     text: formatMessage({
                         id: 'pressGreenFlagLabel',
-                        default: 'Press [IMAGE]',
+                        default: 'press [IMAGE]',
                         description: 'Label on the "pressGreenFlag" block'
                     }),
                     arguments: {
@@ -358,7 +365,7 @@ class Scratch3ItchBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'moveMouseToXY',
-                        default: 'Move mouse to x: [X] y: [Y]',
+                        default: 'move mouse to x: [X] y: [Y]',
                         description: 'Label on the "moveMouseTo" block'
                     }),
                     arguments: {
@@ -411,7 +418,7 @@ class Scratch3ItchBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'spriteFilterLabel',
-                        default: 'Add sprites to [SELECTED_LIST] where [CONDITION]',
+                        default: 'add sprites to [SELECTED_LIST] where [CONDITION]',
                         description: 'Label on the "spriteFilter" block'
                     }),
                     arguments: {
@@ -429,7 +436,7 @@ class Scratch3ItchBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'answerLabel',
-                        default: 'Answer [ANSWER]',
+                        default: 'answer [ANSWER]',
                         description: 'Label on the "answer" block'
                     }),
                     arguments: {
