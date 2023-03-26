@@ -31,6 +31,7 @@ const spriteProperties = [
 
 const greenFlagIcon = require('./icon--green-flag.svg');
 const redFlagIcon = require('./icon--red-flag.svg');
+const Scratch3LooksBlocks = require('../../blocks/scratch3_looks');
 
 // Core, Team, and Official extension classes should be registered statically with the Extension Manager.
 // See: scratch-vm/src/extension-support/extension-manager.js
@@ -69,16 +70,6 @@ class Scratch3ItchBlocks {
         this.runtime.on('QUESTION', question => {
             this.questions.push(question);
         });
-
-        this.spriteIdToSaying = {};
-        this.spriteIdToThinking = {};
-        this.runtime.on('SAY', (target, type, text) => {
-            if (type === 'say') {
-                this.spriteIdToSaying[target.id] = text ? text : '';
-            } else if (type === 'think') {
-                this.spriteIdToThinking[target.id] = text ? text : '';
-            }
-        });
     }
 
     /**
@@ -99,8 +90,6 @@ class Scratch3ItchBlocks {
         // list of asked questions that have not been answered,
         // when the answer block is used it will answer the oldest unanswered question (the first in the list)
         this.questions = [];
-        this.spriteIdToSaying = {};
-        this.spriteIdToThinking = {};
     }
 
     /**
@@ -598,8 +587,11 @@ class Scratch3ItchBlocks {
                 spriteJson.size = target.size;
                 spriteJson.volume = target.volume;
                 spriteJson.name = target.sprite.name;
-                spriteJson.saying = this.spriteIdToSaying[target.id];
-                spriteJson.thinking = this.spriteIdToThinking[target.id];
+                const bubbleState = target.getCustomState(Scratch3LooksBlocks.STATE_KEY);
+                if (bubbleState) {
+                    spriteJson.saying = bubbleState.type === 'say' ? bubbleState.text : '';
+                    spriteJson.thinking = bubbleState.type === 'think' ? bubbleState.text : '';
+                }
                 result.push(spriteJson);
             }
         }
