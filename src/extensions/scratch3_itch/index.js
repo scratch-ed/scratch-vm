@@ -344,6 +344,38 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
+                    opcode: 'clickSprite',
+                    blockType: BlockType.COMMAND,
+
+                    text: formatMessage({
+                        id: 'clickSpriteLabel',
+                        default: 'click [SPRITE]',
+                        description: 'Label on the "clickSprite" block'
+                    }),
+                    arguments: {
+                        SPRITE: {
+                            type: ArgumentType.STRING,
+                            menu: 'spritesReplaceable'
+                        }
+                    }
+                },
+                {
+                    opcode: 'clickSpriteAndWait',
+                    blockType: BlockType.COMMAND,
+
+                    text: formatMessage({
+                        id: 'clickSpriteAndWaitLabel',
+                        default: 'click [SPRITE] and wait',
+                        description: 'Label on the "clickSpriteAndWait" block'
+                    }),
+                    arguments: {
+                        SPRITE: {
+                            type: ArgumentType.STRING,
+                            menu: 'spritesReplaceable'
+                        }
+                    }
+                },
+                {
                     opcode: 'pressGreenFlag', // final opcode: itch_pressGreenFlag
                     blockType: BlockType.COMMAND,
 
@@ -1042,6 +1074,42 @@ class Scratch3ItchBlocks {
                 KEY_OPTION: 'any'
             });
             util.stackFrame.startedThreads = specificKeyThreads.concat(anyKeyThreads);
+
+            if (util.stackFrame.startedThreads.length === 0) {
+                // Nothing was started.
+                return;
+            }
+        }
+        this._waitForStartedThreads(util);
+    }
+
+    /**
+     * Implement clickSprite.
+     * @param {object} args - the block's arguments.
+     */
+    clickSprite (args) {
+        const clickTarget = this.runtime.getSpriteTargetByName(args.SPRITE);
+        if (!clickTarget) {
+            return;
+        }
+        this.runtime.startHats('event_whenthisspriteclicked', {}, clickTarget);
+    }
+
+    /**
+     * Implement clickSpriteAndWait.
+     * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the util.
+     */
+    clickSpriteAndWait (args, util) {
+        // Have we run before, starting threads?
+        if (!util.stackFrame.startedThreads) {
+            // No - start hats for this broadcast.
+            const clickTarget = this.runtime.getSpriteTargetByName(args.SPRITE);
+            if (!clickTarget) {
+                return;
+            }
+
+            util.stackFrame.startedThreads = util.startHats('event_whenthisspriteclicked', {}, clickTarget);
 
             if (util.stackFrame.startedThreads.length === 0) {
                 // Nothing was started.
