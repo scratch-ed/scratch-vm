@@ -980,12 +980,13 @@ class Scratch3ItchBlocks {
      * @param {BlockUtility} util - the util.
      */
     waitUntilOrStop (args, util) {
+        // first time we execute this function, save the start time of the wait
         if (!util.stackFrame.startTime) {
             util.stackFrame.startTime = this.runtime.currentMSecs;
         }
 
-        // time limit is reached
-        if (this.runtime.currentMSecs - util.stackFrame.startTime > args.SECONDS*1000) {
+        // time limit is reached, add feedback as failed feedback and stop the thread
+        if (this.runtime.currentMSecs - util.stackFrame.startTime > args.SECONDS * 1000) {
             const tree = this._getCurrentFeedbackTree(util);
             // create a new node in the feedback tree and push it to the parseStack
             tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.FEEDBACK));
@@ -998,7 +999,14 @@ class Scratch3ItchBlocks {
             return;
         }
 
-        if (!args.CONDITION) {
+        if (args.CONDITION) {
+            const tree = this._getCurrentFeedbackTree(util);
+            // create a new node in the feedback tree and push it to the parseStack
+            tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.FEEDBACK));
+            // a waitUntilOrStop is a leaf (has no children), so pop immediately from the parseStack
+            tree.getParseStack().pop();
+        } else {
+            // We have waited before and are still waiting, so yield the thread.
             util.yieldTick();
         }
     }
