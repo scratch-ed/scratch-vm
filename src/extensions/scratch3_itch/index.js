@@ -989,13 +989,11 @@ class Scratch3ItchBlocks {
             const tree = this._getCurrentFeedbackTree(util);
             // create a new node in the feedback tree and push it to the parseStack
             tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.FEEDBACK));
-            if (!args.CONDITION) {
-                tree.peekParseStack().groupFailed();
-            }
-            // a named assert is a leaf (has no children), so pop immediately from the parseStack
+            tree.peekParseStack().groupFailed();
+            // a waitUntilOrStop is a leaf (has no children), so pop immediately from the parseStack
             tree.getParseStack().pop();
 
-            // stop the thread where the wait until time limit was reached
+            // stop the thread because the wait until time limit was reached
             util.thread.stopThisScript();
             return;
         }
