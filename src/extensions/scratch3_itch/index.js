@@ -619,9 +619,8 @@ class Scratch3ItchBlocks {
             case 'x position': return target['x position'];
             case 'y position': return target['y position'];
             case 'direction': return target.direction;
-            case 'costume #': return target.currentCostume + 1;
-            case 'costume name':
-                return target.costumes[target.currentCostume].name;
+            case 'costume #': return target['costume #'];
+            case 'costume name': return target['costume name'];
             case 'size': return target.size;
             case 'volume': return target.volume;
             case 'saying': return target.saying ? target.saying : '';
