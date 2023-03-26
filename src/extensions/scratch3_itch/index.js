@@ -27,10 +27,10 @@ const spriteProperties = [
     'saying',
     'thinking'
 ];
+// a state should also add the variables defined there (see blocks.js in the gui line 230)
+
 const greenFlagIcon = require('./icon--green-flag.svg');
 const redFlagIcon = require('./icon--red-flag.svg');
-
-// a state should also add the variables defined there (see blocks.js in the gui line 230)
 
 // Core, Team, and Official extension classes should be registered statically with the Extension Manager.
 // See: scratch-vm/src/extension-support/extension-manager.js
@@ -847,7 +847,7 @@ class Scratch3ItchBlocks {
     namedAssert (args, util) {
         const tree = this._getCurrentFeedbackTree(util);
         // create a new node in the feedback tree and push it to the parseStack
-        tree.getParseStack().push(tree.peekParseStack().inject(this._getCurrentBlockId(util), args.NAME));
+        tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.NAME));
         if (!args.ASSERT_CONDITION) {
             tree.peekParseStack().groupFailed();
         }
@@ -876,7 +876,7 @@ class Scratch3ItchBlocks {
         } else {
             // step into
             // create a new node (group) in the feedback tree and push it to the parseStack
-            tree.getParseStack().push(tree.peekParseStack().inject(this._getCurrentBlockId(util), args.GROUP_NAME));
+            tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.GROUP_NAME));
 
             // Say it is a loop so this function is called again,
             // but when it is called again do the first part of this if-else
