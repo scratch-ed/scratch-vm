@@ -29,8 +29,13 @@ const spriteProperties = [
 ];
 // a state should also add the variables defined there (see blocks.js in the gui line 230)
 
-const greenFlagIcon = require('./icon--green-flag.svg');
-const redFlagIcon = require('./icon--red-flag.svg');
+const greenFlagIcon = require('./images/icon--green-flag.svg');
+const redFlagIcon = require('./images/icon--red-flag.svg');
+const observeBlockIcon = require('./images/icon--eye.svg');
+const interactBlockIcon = require('./images/icon--finger-click.svg');
+const feedbackBlockIcon = require('./images/icon--text.svg');
+const injecterBlockIcon = require('./images/icon--square-arrow.svg');
+
 const Scratch3LooksBlocks = require('../../blocks/scratch3_looks');
 
 // Core, Team, and Official extension classes should be registered statically with the Extension Manager.
@@ -183,82 +188,6 @@ class Scratch3ItchBlocks {
             // in the order intended for display.
             blocks: [
                 {
-                    // Required: the machine-readable name of this operation.
-                    // This will appear in project JSON.
-                    opcode: 'assert', // becomes 'itch_assert'
-
-                    // Required: the kind of block we're defining, from a predefined list.
-                    // Fully supported block types:
-                    //   BlockType.BOOLEAN - same as REPORTER but returns a Boolean value
-                    //   BlockType.COMMAND - a normal command block, like "move {} steps"
-                    //   BlockType.HAT - starts a stack if its value changes from falsy to truthy ("edge triggered")
-                    //   BlockType.REPORTER - returns a value, like "direction"
-                    // Block types in development or for internal use only:
-                    //   BlockType.BUTTON - place a button in the block palette
-                    //   BlockType.CONDITIONAL - control flow, like "if {}" or "if {} else {}"
-                    //     A CONDITIONAL block may return the one-based index of a branch to
-                    //     run, or it may return zero/falsy to run no branch.
-                    //   BlockType.EVENT - starts a stack in response to an event (full spec TBD)
-                    //   BlockType.LOOP - control flow, like "repeat {} {}" or "forever {}"
-                    //     A LOOP block is like a CONDITIONAL block with two differences:
-                    //     - the block is assumed to have exactly one child branch, and
-                    //     - each time a child branch finishes, the loop block is called again.
-                    blockType: BlockType.COMMAND,
-
-                    // Required for CONDITIONAL blocks, ignored for others: the number of
-                    // child branches this block controls. An "if" or "repeat" block would
-                    // specify a branch count of 1; an "if-else" block would specify a
-                    // branch count of 2.
-                    // TODO: should we support dynamic branch count for "switch"-likes?
-                    // branchCount: 0,
-
-                    // Required: the human-readable text on this block, including argument
-                    // placeholders. Argument placeholders should be in [MACRO_CASE] and
-                    // must be [ENCLOSED_WITHIN_SQUARE_BRACKETS].
-                    text: formatMessage({
-                        id: 'assertLabel',
-                        default: 'assert [ASSERT_CONDITION]',
-                        description: 'Label on the "assert" block'
-                    }),
-
-                    // Required: describe each argument.
-                    // Argument order may change during translation, so arguments are
-                    // identified by their placeholder name. In those situations where
-                    // arguments must be ordered or assigned an ordinal, such as interaction
-                    // with Scratch Blocks, arguments are ordered as they are in the default
-                    // translation (probably English).
-                    arguments: {
-                        // Required: the ID of the argument, which will be the name in the
-                        // args object passed to the implementation function.
-                        ASSERT_CONDITION: {
-                            // Required: type of the argument / shape of the block input
-                            type: ArgumentType.BOOLEAN,
-
-                            // Optional: the default value of the argument
-                            defaultValue: false
-                        }
-                    }
-                },
-                {
-                    opcode: 'namedAssert',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'namedAssertLabel',
-                        default: 'assert [ASSERT_CONDITION] named [NAME]',
-                        description: 'Label on the "namedAssert" block'
-                    }),
-                    arguments: {
-                        NAME: {
-                            type: ArgumentType.STRING,
-                            defaultValue: ' '
-                        },
-                        ASSERT_CONDITION: {
-                            type: ArgumentType.BOOLEAN,
-                            defaultValue: false
-                        },
-                    }
-                },
-                {
                     opcode: 'startTests',
                     blockType: BlockType.EVENT,
                     isEdgeActivated: false, // undocumented option that is used on line 1234 of src/engine/runtime.js
@@ -277,31 +206,28 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
-                    opcode: 'groupName',
-                    blockType: BlockType.CONDITIONAL,
-                    branchCount: 1,
-                    text: 'test group [GROUP_NAME]',
+                    opcode: 'namedAssert',
+                    blockIconURI: feedbackBlockIcon,
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'namedAssertLabel',
+                        default: 'assert [ASSERT_CONDITION] named [NAME]',
+                        description: 'Label on the "namedAssert" block'
+                    }),
                     arguments: {
-                        GROUP_NAME: {
+                        NAME: {
                             type: ArgumentType.STRING,
                             defaultValue: ' '
-                        }
-                    }
-                },
-                {
-                    opcode: 'forSpriteDo',
-                    blockType: BlockType.CONDITIONAL,
-                    branchCount: 1,
-                    text: 'with [SPRITE] do',
-                    arguments: {
-                        SPRITE: {
-                            type: ArgumentType.STRING,
-                            menu: 'spritesReplaceable'
+                        },
+                        ASSERT_CONDITION: {
+                            type: ArgumentType.BOOLEAN,
+                            defaultValue: false
                         }
                     }
                 },
                 {
                     opcode: 'waitUntilOrStop',
+                    blockIconURI: feedbackBlockIcon,
                     blockType: BlockType.COMMAND,
                     text: 'wait until [CONDITION] or [SECONDS] seconds. feedback: [FEEDBACK]',
                     arguments: {
@@ -320,9 +246,38 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
-                    opcode: 'pressKey',
+                    opcode: 'groupName',
+                    blockIconURI: feedbackBlockIcon,
+                    blockType: BlockType.CONDITIONAL,
+                    branchCount: 1,
+                    text: 'test group [GROUP_NAME]',
+                    arguments: {
+                        GROUP_NAME: {
+                            type: ArgumentType.STRING,
+                            defaultValue: ' '
+                        }
+                    }
+                },
+                {
+                    opcode: 'pressGreenFlag', // final opcode: itch_pressGreenFlag
+                    blockIconURI: interactBlockIcon,
                     blockType: BlockType.COMMAND,
-
+                    text: formatMessage({
+                        id: 'pressGreenFlagLabel',
+                        default: 'click [IMAGE]',
+                        description: 'Label on the "pressGreenFlag" block'
+                    }),
+                    arguments: {
+                        IMAGE: {
+                            type: ArgumentType.IMAGE,
+                            dataURI: greenFlagIcon
+                        }
+                    }
+                },
+                {
+                    opcode: 'pressKey',
+                    blockIconURI: interactBlockIcon,
+                    blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'pressKeyLabel',
                         default: 'press [KEY] key',
@@ -337,8 +292,8 @@ class Scratch3ItchBlocks {
                 },
                 {
                     opcode: 'pressKeyAndWait',
+                    blockIconURI: interactBlockIcon,
                     blockType: BlockType.COMMAND,
-
                     text: formatMessage({
                         id: 'pressKeyAndWaitLabel',
                         default: 'press [KEY] key and wait',
@@ -353,8 +308,8 @@ class Scratch3ItchBlocks {
                 },
                 {
                     opcode: 'clickSprite',
+                    blockIconURI: interactBlockIcon,
                     blockType: BlockType.COMMAND,
-
                     text: formatMessage({
                         id: 'clickSpriteLabel',
                         default: 'click [SPRITE]',
@@ -369,8 +324,8 @@ class Scratch3ItchBlocks {
                 },
                 {
                     opcode: 'clickSpriteAndWait',
+                    blockIconURI: interactBlockIcon,
                     blockType: BlockType.COMMAND,
-
                     text: formatMessage({
                         id: 'clickSpriteAndWaitLabel',
                         default: 'click [SPRITE] and wait',
@@ -384,24 +339,8 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
-                    opcode: 'pressGreenFlag', // final opcode: itch_pressGreenFlag
-                    blockType: BlockType.COMMAND,
-
-                    text: formatMessage({
-                        id: 'pressGreenFlagLabel',
-                        default: 'press [IMAGE]',
-                        description: 'Label on the "pressGreenFlag" block'
-                    }),
-                    arguments: {
-                        IMAGE: {
-                            type: ArgumentType.IMAGE,
-                            dataURI: greenFlagIcon
-                        }
-                    }
-                },
-                {
-
                     opcode: 'moveMouseTo', // becomes 'itch_movemouseto'
+                    blockIconURI: interactBlockIcon,
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'moveMouseToXY',
@@ -419,8 +358,36 @@ class Scratch3ItchBlocks {
                         }
                     }
                 },
+                {
+                    opcode: 'answer',
+                    blockIconURI: interactBlockIcon,
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'answerLabel',
+                        default: 'answer [ANSWER]',
+                        description: 'Label on the "answer" block'
+                    }),
+                    arguments: {
+                        ANSWER: {
+                            type: ArgumentType.STRING,
+                            defaultValue: ' '
+                        }
+                    }
+                },
+                {
+                    opcode: 'snapshot',
+                    blockIconURI: observeBlockIcon,
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: 'snapshot',
+                        default: 'snapshot',
+                        description: 'Label on the "snapshot" variable'
+                    }),
+                    arguments: {}
+                },
                 { // TODO: change name to querySnapshot
                     opcode: 'queryState',
+                    blockIconURI: observeBlockIcon,
                     blockType: BlockType.REPORTER,
                     text: formatMessage({
                         id: 'queryStateLabel',
@@ -444,17 +411,8 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
-                    opcode: 'snapshot',
-                    blockType: BlockType.REPORTER,
-                    text: formatMessage({
-                        id: 'snapshot',
-                        default: 'snapshot',
-                        description: 'Label on the "snapshot" variable'
-                    }),
-                    arguments: {}
-                },
-                {
                     opcode: 'spriteFilter',
+                    blockIconURI: injecterBlockIcon,
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'spriteFilterLabel',
@@ -472,17 +430,15 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
-                    opcode: 'answer',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'answerLabel',
-                        default: 'answer [ANSWER]',
-                        description: 'Label on the "answer" block'
-                    }),
+                    opcode: 'forSpriteDo',
+                    blockIconURI: injecterBlockIcon,
+                    blockType: BlockType.CONDITIONAL,
+                    branchCount: 1,
+                    text: 'with [SPRITE] do',
                     arguments: {
-                        ANSWER: {
+                        SPRITE: {
                             type: ArgumentType.STRING,
-                            defaultValue: ' '
+                            menu: 'spritesReplaceable'
                         }
                     }
                 }
