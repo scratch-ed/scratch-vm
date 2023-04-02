@@ -30,7 +30,7 @@ const spriteProperties = [
 // a state should also add the variables defined there (see blocks.js in the gui line 230)
 
 const greenFlagIcon = require('./images/icon--green-flag.svg');
-const redFlagIcon = require('./images/icon--red-flag.svg');
+const testTubeIcon = require('./images/icon--test-tube.svg');
 const observeBlockIcon = require('./images/icon--eye.svg');
 const interactBlockIcon = require('./images/icon--finger-click.svg');
 const feedbackBlockIcon = require('./images/icon--text.svg');
@@ -165,8 +165,9 @@ class Scratch3ItchBlocks {
             id: 'itch',
 
             // Core extensions only: override the default extension block colors.
-            color1: '#d8181b',
-            color2: '#ad1316',
+            color1: '#797270',
+            color2: '#605B59',
+            color3: '#605B59',
 
             // Optional: the human-readable name of this extension as string.
             // This and any other string to be displayed in the Scratch UI may either be
@@ -180,7 +181,7 @@ class Scratch3ItchBlocks {
             // See also: https://github.com/yahoo/react-intl/wiki/API#formatmessage
             name: formatMessage({
                 id: 'itch.categoryName',
-                default: 'Itch',
+                default: 'Testing',
                 description: 'Label for the itch extension category'
             }),
 
@@ -201,7 +202,7 @@ class Scratch3ItchBlocks {
                     arguments: {
                         IMAGE: {
                             type: ArgumentType.IMAGE,
-                            dataURI: redFlagIcon
+                            dataURI: testTubeIcon
                         }
                     }
                 },
