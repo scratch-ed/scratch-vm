@@ -403,7 +403,7 @@ class Scratch3ItchBlocks {
                         OBJECT: {
                             // Required: type of the argument / shape of the block input
                             type: ArgumentType.STRING,
-                            menu: 'sprites'
+                            menu: 'spritesReplaceable'
                         },
                         STATE: {
                             type: ArgumentType.STRING,
