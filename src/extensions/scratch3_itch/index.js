@@ -31,9 +31,9 @@ const spriteProperties = [
 
 const greenFlagIcon = require('./images/icon--green-flag.svg');
 const testTubeIcon = require('./images/icon--test-tube.svg');
-const observeBlockIcon = require('./images/icon--eye.svg');
-const interactBlockIcon = require('./images/icon--finger-click.svg');
-const feedbackBlockIcon = require('./images/icon--text.svg');
+const observeBlockIcon = require('./images/icon--observe.svg');
+const interactBlockIcon = require('./images/icon--interact.svg');
+const feedbackBlockIcon = require('./images/icon--feedback.svg');
 const injecterBlockIcon = require('./images/icon--square-arrow.svg');
 
 const Scratch3LooksBlocks = require('../../blocks/scratch3_looks');
