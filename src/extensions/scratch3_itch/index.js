@@ -227,6 +227,30 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
+                    opcode: 'addCorrectFeedback',
+                    blockIconURI: feedbackBlockIcon,
+                    blockType: BlockType.COMMAND,
+                    text: 'give correct feedback: [FEEDBACK]',
+                    arguments: {
+                        FEEDBACK: {
+                            type: ArgumentType.STRING,
+                            defaultValue: ' '
+                        }
+                    }
+                },
+                {
+                    opcode: 'addWrongFeedback',
+                    blockIconURI: feedbackBlockIcon,
+                    blockType: BlockType.COMMAND,
+                    text: 'give wrong feedback: [FEEDBACK]',
+                    arguments: {
+                        FEEDBACK: {
+                            type: ArgumentType.STRING,
+                            defaultValue: ' '
+                        }
+                    }
+                },
+                {
                     opcode: 'waitUntilOrStop',
                     blockIconURI: feedbackBlockIcon,
                     blockType: BlockType.COMMAND,
@@ -851,6 +875,33 @@ class Scratch3ItchBlocks {
             tree.peekParseStack().groupFailed();
         }
         // a named assert is a leaf (has no children), so pop immediately from the parseStack
+        tree.getParseStack().pop();
+    }
+
+    /**
+     * Implement addCorrectFeedback.
+     * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the block utility object.
+     */
+    addCorrectFeedback (args, util) {
+        const tree = this._getCurrentFeedbackTree(util);
+        // create a new node in the feedback tree and push it to the parseStack
+        tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.FEEDBACK));
+        // an addCorrectFeedback block creates a leaf in the tree, so pop immediately from the parseStack
+        tree.getParseStack().pop();
+    }
+
+    /**
+     * Implement addWrongFeedback.
+     * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the block utility object.
+     */
+    addWrongFeedback (args, util) {
+        const tree = this._getCurrentFeedbackTree(util);
+        // create a new node in the feedback tree and push it to the parseStack
+        tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.FEEDBACK));
+        tree.peekParseStack().groupFailed();
+        // an addCorrectFeedback block creates a leaf in the tree, so pop immediately from the parseStack
         tree.getParseStack().pop();
     }
 
