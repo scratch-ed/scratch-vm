@@ -1243,8 +1243,11 @@ class Scratch3ItchBlocks {
                 stageJson.variables = {};
                 const variableNames = target.getAllVariableNamesInScopeByType(Variable.SCALAR_TYPE, false);
                 for (const variableName of variableNames) {
-                    stageJson.variables[variableName] =
-                        target.lookupVariableByNameAndType(variableName, Variable.SCALAR_TYPE).value;
+                    const variableValue = target.lookupVariableByNameAndType(variableName, Variable.SCALAR_TYPE).value;
+                    // dirty fix to avoid saving variable that contains snapshot
+                    if (variableValue[0] === '[' && variableValue[1] === '{') continue;
+                    stageJson.variables[variableName] = variableValue;
+
                 }
                 result.push(stageJson);
             } else {
@@ -1266,8 +1269,11 @@ class Scratch3ItchBlocks {
                 spriteJson.variables = {};
                 const variableNames = target.getAllVariableNamesInScopeByType(Variable.SCALAR_TYPE, true);
                 for (const variableName of variableNames) {
-                    spriteJson.variables[variableName] =
-                        target.lookupVariableByNameAndType(variableName, Variable.SCALAR_TYPE).value;
+                    const variableValue = target.lookupVariableByNameAndType(variableName, Variable.SCALAR_TYPE).value;
+                    // dirty fix to avoid saving variable that contains snapshot
+                    if (variableValue[0] === '[' && variableValue[1] === '{') continue;
+                    spriteJson.variables[variableName] = variableValue;
+
                 }
                 result.push(spriteJson);
             }
