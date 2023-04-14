@@ -271,6 +271,23 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
+                    opcode: 'waitUntilOrStopNoFeedback',
+                    blockIconURI: feedbackBlockIcon,
+                    blockType: BlockType.CONDITIONAL,
+                    branchCount: 1,
+                    text: 'wait until [CONDITION] or [SECONDS] seconds.',
+                    arguments: {
+                        CONDITION: {
+                            type: ArgumentType.BOOLEAN,
+                            defaultValue: false
+                        },
+                        SECONDS: {
+                            type: ArgumentType.STRING,
+                            defaultValue: '5'
+                        }
+                    }
+                },
+                {
                     opcode: 'groupName',
                     blockIconURI: feedbackBlockIcon,
                     blockType: BlockType.CONDITIONAL,
@@ -1013,6 +1030,28 @@ class Scratch3ItchBlocks {
             // a waitUntilOrStop is a leaf (has no children), so pop immediately from the parseStack
             tree.getParseStack().pop();
         } else {
+            // We have waited before and are still waiting, so yield the thread.
+            util.yieldTick();
+        }
+    }
+
+    /**
+     * Implement waitUntilOrStopNoFeedback.
+     * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the util.
+     */
+    waitUntilOrStopNoFeedback (args, util) {
+        if (!util.stackFrame.startTime) {
+            // First time we execute this function, save the start time of the wait
+            util.stackFrame.startTime = this.runtime.currentMSecs;
+        }
+
+        if (this.runtime.currentMSecs - util.stackFrame.startTime > args.SECONDS * 1000) {
+            // Time limit is reached, go to branch 1
+            util.startBranch(1, false);
+        }
+
+        if (!args.CONDITION) {
             // We have waited before and are still waiting, so yield the thread.
             util.yieldTick();
         }
