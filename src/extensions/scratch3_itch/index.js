@@ -65,6 +65,7 @@ class Scratch3ItchBlocks {
             }
 
             // (re)initialise the feedback tree
+            this.runtime.feedbackTrees = {};
             this.runtime.feedbackTrees[startedThreads[0].topBlock] = new TreeNode(0, 'rootGroup');
 
             this._undoInjection(startedThreads[0].topBlock);
