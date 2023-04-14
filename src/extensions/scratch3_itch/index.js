@@ -444,7 +444,23 @@ class Scratch3ItchBlocks {
                         OBJECT: {
                             // Required: type of the argument / shape of the block input
                             type: ArgumentType.STRING,
-                            menu: 'spritesReplaceable'
+                            menu: 'spritesReplaceableNoStage'
+                        },
+                        STATE: {
+                            type: ArgumentType.STRING,
+                            defaultValue: ' '
+                        }
+                    }
+                },
+                {
+                    opcode: 'queryStageAndVariablesInSnapshot',
+                    blockIconURI: observeBlockIcon,
+                    blockType: BlockType.REPORTER,
+                    text: '[PROPERTY] in [STATE]',
+                    arguments: {
+                        PROPERTY: {
+                            type: ArgumentType.STRING,
+                            menu: 'stagePropertiesAndVariables'
                         },
                         STATE: {
                             type: ArgumentType.STRING,
@@ -518,12 +534,23 @@ class Scratch3ItchBlocks {
                     // The `item` property may be an array or function name as in previous menu examples.
                     items: '_getSpritesList'
                 },
+                spritesReplaceableNoStage: {
+                    // This flag makes a "droppable" menu: the menu will allow dropping a reporter in for the input.
+                    acceptReporters: true,
+
+                    // The `item` property may be an array or function name as in previous menu examples.
+                    items: '_getSpritesListNoStage'
+                },
                 properties: {
                     // This flag makes a "droppable" menu: the menu will allow dropping a reporter in for the input.
                     acceptReporters: false,
 
                     // The `item` property may be an array or function name as in previous menu examples.
                     items: '_getPropertiesList'
+                },
+                stagePropertiesAndVariables: {
+                    acceptReports: false,
+                    items: '_getStagePropertiesAndVariablesList'
                 },
                 lists: {
                     acceptReporters: false,
@@ -553,10 +580,30 @@ class Scratch3ItchBlocks {
         return this.runtime.targets.map(target => target.getName());
     }
 
+    /**
+     * _getSpritesListNoStage.
+     * @returns {string[]} List of names of the targets without stage
+     */
+    _getSpritesListNoStage () {
+        const list = this._getSpritesList().filter(name => name !== 'Stage');
+        return list.length ? list : ['<there are no sprites>'];
+    }
+
     _getPropertiesList () {
-        // todo: different options when the selected sprite is the stage
-        // use: targetId is passed to this function when called
         return spriteProperties;
+    }
+
+    _getStagePropertiesAndVariablesList () {
+        const result =
+            stageProperties.concat(
+                this.runtime.getTargetForStage().getAllVariableNamesInScopeByType(Variable.SCALAR_TYPE, false));
+        for (const target of this.runtime.targets) {
+            if (!target.isStage) {
+                target.getAllVariableNamesInScopeByType(Variable.SCALAR_TYPE, true)
+                    .forEach(name => result.push(`${target.getName()}: ${name}`));
+            }
+        }
+        return result;
     }
 
     _getListsList (targetId) {
@@ -564,68 +611,7 @@ class Scratch3ItchBlocks {
         const target = this.runtime.getTargetById(targetId);
         if (!target) return ['choose a list'];
         const list = target.getAllVariableNamesInScopeByType(Variable.LIST_TYPE, false);
-        return list.length ? list : ['choose a list'];
-    }
-
-    /**
-     * _stringifyTargets.
-     * @param {Target[]} targets - list of the targets to stringify.
-     * @returns {string} value of the queried field
-     */
-    _stringifyTargets (targets) {
-        const result = [];
-        for (const target of targets) {
-            if (!target.isStage) {
-                const spriteJson = {};
-                spriteJson['x position'] = target.x;
-                spriteJson['y position'] = target.y;
-                spriteJson.direction = target.direction;
-                spriteJson['costume #'] = target.currentCostume + 1;
-                spriteJson['costume name'] = target.sprite.costumes[target.currentCostume].name;
-                spriteJson.size = target.size;
-                spriteJson.volume = target.volume;
-                spriteJson.name = target.sprite.name;
-                const bubbleState = target.getCustomState(Scratch3LooksBlocks.STATE_KEY);
-                if (bubbleState) {
-                    spriteJson.saying = bubbleState.type === 'say' ? bubbleState.text : '';
-                    spriteJson.thinking = bubbleState.type === 'think' ? bubbleState.text : '';
-                }
-                result.push(spriteJson);
-            }
-        }
-        return JSON.stringify(result);
-    }
-
-    /**
-     * get an attribute of a target that is a sprite or a stage.
-     * @param {RenderedTarget|object} target - the target.
-     * @param {string} property - the property name.
-     * @returns {number|*} property value
-     * @private
-     */
-    _getAttributeOf (target, property) {
-        if (target.isStage) {
-            switch (property) {
-            case 'background #': return target.currentCostume + 1;
-            case 'backdrop #': return target.currentCostume + 1;
-            case 'backdrop name':
-                return target.costumes[target.currentCostume].name;
-            case 'volume': return target.volume;
-            }
-        } else {
-            switch (property) {
-            case 'x position': return target['x position'];
-            case 'y position': return target['y position'];
-            case 'direction': return target.direction;
-            case 'costume #': return target['costume #'];
-            case 'costume name': return target['costume name'];
-            case 'size': return target.size;
-            case 'volume': return target.volume;
-            case 'saying': return target.saying ? target.saying : '';
-            case 'thinking': return target.thinking ? target.thinking : '';
-            }
-        }
-        return 0;
+        return list.length ? list : ['<there are no lists>'];
     }
 
     _getCurrentFeedbackTree (util) {
@@ -1240,26 +1226,107 @@ class Scratch3ItchBlocks {
     }
 
     /**
-     * Implement queryState variable.
+     * Implement snapshot variable.
+     * @returns {string} string of a json that contains the runtime
+     */
+    snapshot () {
+        const result = [];
+        for (const target of this.runtime.targets) {
+            if (target.isStage) {
+                const stageJson = {};
+                stageJson.name = 'Stage';
+                stageJson['backdrop #'] = target.currentCostume + 1;
+                stageJson['backdrop name'] = target.sprite.costumes[target.currentCostume].name;
+                stageJson.volume = target.volume;
+                // save global (part of stage) variableNames and their values
+                stageJson.variables = {};
+                const variableNames = target.getAllVariableNamesInScopeByType(Variable.SCALAR_TYPE, false);
+                for (const variableName of variableNames) {
+                    stageJson.variables[variableName] =
+                        target.lookupVariableByNameAndType(variableName, Variable.SCALAR_TYPE).value;
+                }
+                result.push(stageJson);
+            } else {
+                const spriteJson = {};
+                spriteJson['x position'] = target.x;
+                spriteJson['y position'] = target.y;
+                spriteJson.direction = target.direction;
+                spriteJson['costume #'] = target.currentCostume + 1;
+                spriteJson['costume name'] = target.sprite.costumes[target.currentCostume].name;
+                spriteJson.size = target.size;
+                spriteJson.volume = target.volume;
+                spriteJson.name = target.sprite.name;
+                const bubbleState = target.getCustomState(Scratch3LooksBlocks.STATE_KEY);
+                if (bubbleState) {
+                    spriteJson.saying = bubbleState.type === 'say' ? bubbleState.text : '';
+                    spriteJson.thinking = bubbleState.type === 'think' ? bubbleState.text : '';
+                }
+                // save private variableNames and their values
+                spriteJson.variables = {};
+                const variableNames = target.getAllVariableNamesInScopeByType(Variable.SCALAR_TYPE, true);
+                for (const variableName of variableNames) {
+                    spriteJson.variables[variableName] =
+                        target.lookupVariableByNameAndType(variableName, Variable.SCALAR_TYPE).value;
+                }
+                result.push(spriteJson);
+            }
+        }
+        return JSON.stringify(result);
+    }
+
+
+    /**
+     * Implement queryState reporter block.
      * @param {object} args - the block's arguments.
      * @returns {string} value of the queried field
      */
     queryState (args) {
-        if (!args.STATE) return '';
+        if (!args.STATE || args.STATE === ' ' || args.OBJECT === 'Stage') return '';
         const savedState = JSON.parse(args.STATE);
-        const sprite = savedState.find(target => target.name === args.OBJECT);
-        if (sprite) {
-            return this._getAttributeOf(sprite, args.PROPERTY);
+        const nonStageSprite = savedState.find(target => target.name === args.OBJECT);
+        if (nonStageSprite) {
+            switch (args.PROPERTY) {
+            case 'x position': return nonStageSprite['x position'];
+            case 'y position': return nonStageSprite['y position'];
+            case 'direction': return nonStageSprite.direction;
+            case 'costume #': return nonStageSprite['costume #'];
+            case 'costume name': return nonStageSprite['costume name'];
+            case 'size': return nonStageSprite.size;
+            case 'volume': return nonStageSprite.volume;
+            case 'saying': return nonStageSprite.saying ? nonStageSprite.saying : '';
+            case 'thinking': return nonStageSprite.thinking ? nonStageSprite.thinking : '';
+            }
         }
         return '';
     }
 
     /**
-     * Implement snapshot variable.
-     * @returns {string} string of a json that contains the runtime
+     * Implement queryNonSpriteDataFromSnapshot reporter block.
+     * @param {object} args - the block's arguments.
+     * @returns {string} value of the queried field
      */
-    snapshot () {
-        return this._stringifyTargets(this.runtime.targets);
+    queryStageAndVariablesInSnapshot (args) {
+        if (!args.STATE || args.STATE === ' ') return '';
+        const savedState = JSON.parse(args.STATE);
+        const stage = savedState.find(target => target.name === 'Stage');
+        if (stage) {
+            switch (args.PROPERTY) {
+            case 'backdrop #': return stage['backdrop #'];
+            case 'backdrop name': return stage['backdrop name'];
+            case 'volume': return stage.volume;
+            }
+            // variable is selected
+            // it is a global variable that is saved with the stage
+            if (Object.keys(stage.variables).includes(args.PROPERTY)) {
+                return stage.variables[args.PROPERTY];
+            }
+            // TODO: use complex menu object so that there can be no accidental ': ' injections into variable or sprite name
+            // it is a local variable that is saved with a sprite (example menu option: 'Sprite1: my variable')
+            const spriteVariableName = args.PROPERTY.split(': ')[1];
+            const spriteName = args.PROPERTY.split(': ')[0];
+            return savedState.find(target => target.name === spriteName).variables[spriteVariableName];
+        }
+        return '';
     }
 
     /**
