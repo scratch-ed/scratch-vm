@@ -1,5 +1,5 @@
 const EventEmitter = require('events');
-const {OrderedMap} = require('immutable');
+const {OrderedMap, Map} = require('immutable');
 
 const ArgumentType = require('../extension-support/argument-type');
 const Blocks = require('./blocks');
@@ -1661,7 +1661,7 @@ class Runtime extends EventEmitter {
      * Restores a thread that was previously in the threads of this runtime
      * The target that was associated with the thread (Thread.target),
      * should still be in the target list of this runtime
-     * @param threadJson A JSON string representing the thread, as created by Thread.toJSON()
+     * @param  {string} threadJson A JSON string representing the thread, as created by Thread.toJSON()
      * @return {Thread} The newly created thread
      */
     restoreThread (threadJson) {
@@ -2311,7 +2311,8 @@ class Runtime extends EventEmitter {
             const thread = searchThreads[i];
             const target = thread.target;
             if (target === this._editingTarget && thread.requestScriptGlowInFrame) {
-                const blockForThread = thread.blockGlowInFrame;
+                // 'Next' block
+                const blockForThread = thread.peekStack();
                 requestedIndicationThisFrame.push(blockForThread);
             }
         }
