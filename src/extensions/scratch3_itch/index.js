@@ -34,6 +34,8 @@ const testTubeIcon = require('./images/icon--test-tube.svg');
 const observeBlockIcon = require('./images/icon--observe.svg');
 const interactBlockIcon = require('./images/icon--interact.svg');
 const feedbackBlockIcon = require('./images/icon--feedback.svg');
+const feedbackWrongIcon = require('./images/icon--feedback-wrong.svg');
+const feedbackCorrectIcon = require('./images/icon--feedback-correct.svg');
 const injecterBlockIcon = require('./images/icon--square-arrow.svg');
 
 const Scratch3LooksBlocks = require('../../blocks/scratch3_looks');
@@ -191,7 +193,7 @@ class Scratch3ItchBlocks {
             blocks: [
                 {
                     opcode: 'startTests',
-                    blockType: BlockType.EVENT,
+                    blockType: BlockType.HAT,
                     isEdgeActivated: false, // undocumented option that is used on line 1234 of src/engine/runtime.js
                     // if test flag is clicked, restart the test thread if already running
                     shouldRestartExistingThreads: true,
@@ -229,9 +231,9 @@ class Scratch3ItchBlocks {
                 },
                 {
                     opcode: 'addCorrectFeedback',
-                    blockIconURI: feedbackBlockIcon,
+                    blockIconURI: feedbackCorrectIcon,
                     blockType: BlockType.COMMAND,
-                    text: 'give correct feedback: [FEEDBACK]',
+                    text: 'correct: [FEEDBACK]',
                     arguments: {
                         FEEDBACK: {
                             type: ArgumentType.STRING,
@@ -241,9 +243,9 @@ class Scratch3ItchBlocks {
                 },
                 {
                     opcode: 'addWrongFeedback',
-                    blockIconURI: feedbackBlockIcon,
+                    blockIconURI: feedbackWrongIcon,
                     blockType: BlockType.COMMAND,
-                    text: 'give wrong feedback: [FEEDBACK]',
+                    text: 'wrong: [FEEDBACK]',
                     arguments: {
                         FEEDBACK: {
                             type: ArgumentType.STRING,
@@ -850,6 +852,16 @@ class Scratch3ItchBlocks {
                 spriteTarget.blocks.resetCache();
             }
         }
+    }
+
+    /**
+     * Implement startTests.
+     * @returns {boolean} - always true so hat actually starts.
+     */
+    startTests () {
+        // TODO: what if we start the next block here, 
+        //  then we could maybe wait on the thread and do operations when the test thread is done?
+        return true;
     }
 
     /**
