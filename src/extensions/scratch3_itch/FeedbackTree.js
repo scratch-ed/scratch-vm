@@ -26,6 +26,10 @@ class TreeNode {
         return this.children[this.children.length - 1];
     }
 
+    addChild (blockId, value) {
+        this.getParseStack().push(this.peekParseStack().insert(blockId, value));
+    }
+
     peekParseStack () {
         if (!this.parent) {
             return this.parseStack[this.parseStack.length - 1];

@@ -27,7 +27,6 @@ const spriteProperties = [
     'saying',
     'thinking'
 ];
-// a state should also add the variables defined there (see blocks.js in the gui line 230)
 
 const greenFlagIcon = require('./images/icon--green-flag.svg');
 const testTubeIcon = require('./images/icon--test-tube.svg');
@@ -612,7 +611,7 @@ class Scratch3ItchBlocks {
     _getListsList (targetId) {
         // wrong value is passed to block using this menu!
         const target = this.runtime.getTargetById(targetId);
-        if (!target) return ['choose a list'];
+        if (!target) return ['<there are no lists>'];
         const list = target.getAllVariableNamesInScopeByType(Variable.LIST_TYPE, false);
         return list.length ? list : ['<there are no lists>'];
     }
@@ -695,8 +694,8 @@ class Scratch3ItchBlocks {
     }
 
     /**
-     * Inject all code of util.target into spriteToInject (usually this is to inject all testcode).
-     * @param {BlockUtility!} util - the block utility object.µ
+     * Inject all code of util.thread.target into spriteToInject (usually this is to inject all testcode).
+     * @param {BlockUtility!} util - the block utility object.
      * @param {string!} spriteToInjectId - the sprite to inject the code into.
      * @private
      */
@@ -705,7 +704,7 @@ class Scratch3ItchBlocks {
         if (!this.testCodeInjected.includes(spriteToInject.getName())) {
             const duplicatedBlocks = util.thread.target.blocks.duplicate();
             spriteToInject.blocks._blocks = Object.assign(spriteToInject.blocks._blocks, duplicatedBlocks._blocks);
-            // Set "When tests started" block that was copied to spriteTarget lopLevel field to false
+            // Set "When tests started" block (that was copied to spriteTarget) lopLevel field to false
             // to avoid accidental execution and make it invisible to the user.
             spriteToInject.blocks._blocks[util.thread.topBlock].topLevel = false;
             this.testCodeInjected.push(spriteToInject.getName());
@@ -816,7 +815,7 @@ class Scratch3ItchBlocks {
     }
 
     /**
-     * Start all injected threads with message broadcastMessage
+     * Start all injected threads with message broadcastMessage if they have not been started yet
      * @param {BlockUtility!} util - the block utility object.
      * @param {[Target]!} sprites - the sprites to add and remove hidden broadcast threads in.
      * @param {string!} injecterBlockId - the id of the block that injected the broadcast threads.
@@ -859,7 +858,7 @@ class Scratch3ItchBlocks {
      * @returns {boolean} - always true so hat actually starts.
      */
     startTests () {
-        // TODO: what if we start the next block here, 
+        // TODO: what if we start the next block here,
         //  then we could maybe wait on the thread and do operations when the test thread is done?
         return true;
     }
@@ -873,8 +872,6 @@ class Scratch3ItchBlocks {
         if (!args.ASSERT_CONDITION) {
             this._getCurrentFeedbackTree(util).peekParseStack()
                 .groupFailed();
-            // stop the thread where the assert failed
-            // this.runtime.threads.at(0).stopThisScript();
         }
     }
 
@@ -886,7 +883,7 @@ class Scratch3ItchBlocks {
     namedAssert (args, util) {
         const tree = this._getCurrentFeedbackTree(util);
         // create a new node in the feedback tree and push it to the parseStack
-        tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.NAME));
+        tree.addChild(this._getCurrentBlockId(util), args.NAME);
         if (!args.ASSERT_CONDITION) {
             tree.peekParseStack().groupFailed();
         }
@@ -902,7 +899,7 @@ class Scratch3ItchBlocks {
     addCorrectFeedback (args, util) {
         const tree = this._getCurrentFeedbackTree(util);
         // create a new node in the feedback tree and push it to the parseStack
-        tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.FEEDBACK));
+        tree.addChild(this._getCurrentBlockId(util), args.FEEDBACK);
         // an addCorrectFeedback block creates a leaf in the tree, so pop immediately from the parseStack
         tree.getParseStack().pop();
     }
@@ -915,7 +912,7 @@ class Scratch3ItchBlocks {
     addWrongFeedback (args, util) {
         const tree = this._getCurrentFeedbackTree(util);
         // create a new node in the feedback tree and push it to the parseStack
-        tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.FEEDBACK));
+        tree.addChild(this._getCurrentBlockId(util), args.FEEDBACK);
         tree.peekParseStack().groupFailed();
         // an addCorrectFeedback block creates a leaf in the tree, so pop immediately from the parseStack
         tree.getParseStack().pop();
@@ -942,7 +939,7 @@ class Scratch3ItchBlocks {
         } else {
             // step into
             // create a new node (group) in the feedback tree and push it to the parseStack
-            tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.GROUP_NAME));
+            tree.addChild(this._getCurrentBlockId(util), args.GROUP_NAME);
 
             // Say it is a loop so this function is called again,
             // but when it is called again do the first part of this if-else
@@ -1012,20 +1009,17 @@ class Scratch3ItchBlocks {
         if (this.runtime.currentMSecs - util.stackFrame.startTime > args.SECONDS * 1000) {
             const tree = this._getCurrentFeedbackTree(util);
             // create a new node in the feedback tree and push it to the parseStack
-            tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.FEEDBACK));
+            tree.addChild(this._getCurrentBlockId(util), args.FEEDBACK);
             tree.peekParseStack().groupFailed();
             // a waitUntilOrStop is a leaf (has no children), so pop immediately from the parseStack
             tree.getParseStack().pop();
-
-            // stop the thread because the wait until time limit was reached
-            util.thread.stopThisScript();
             return;
         }
 
         if (args.CONDITION) {
             const tree = this._getCurrentFeedbackTree(util);
             // create a new node in the feedback tree and push it to the parseStack
-            tree.getParseStack().push(tree.peekParseStack().insert(this._getCurrentBlockId(util), args.FEEDBACK));
+            tree.addChild(this._getCurrentBlockId(util), args.FEEDBACK);
             // a waitUntilOrStop is a leaf (has no children), so pop immediately from the parseStack
             tree.getParseStack().pop();
         } else {
