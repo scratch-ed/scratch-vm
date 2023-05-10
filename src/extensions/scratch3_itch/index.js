@@ -117,8 +117,8 @@ class Scratch3ItchBlocks {
         // We clean up the injected blocks of the previous execution
         // At the moment this seems to be the best way to do this, but it is not very clean since the injected blocks
         // of the last execution are not deleted.
-        for (const spriteName of this.testCodeInjected) {
-            const sprite = this.runtime.getSpriteTargetByName(spriteName);
+        for (const spriteId of this.testCodeInjected) {
+            const sprite = this.runtime.getTargetById(spriteId);
             // Delete injected test code
             if (sprite) sprite.blocks.deleteBlock(testThreadTopBlock);
         }
@@ -718,13 +718,13 @@ class Scratch3ItchBlocks {
      */
     _injectAllCodeIfNeeded (util, spriteToInjectId) {
         const spriteToInject = this.runtime.getTargetById(spriteToInjectId);
-        if (!this.testCodeInjected.includes(spriteToInject.getName())) {
+        if (!this.testCodeInjected.includes(spriteToInject.id)) {
             const duplicatedBlocks = util.thread.target.blocks.duplicate();
             spriteToInject.blocks._blocks = Object.assign(spriteToInject.blocks._blocks, duplicatedBlocks._blocks);
             // Set "When tests started" block (that was copied to spriteTarget) lopLevel field to false
             // to avoid accidental execution and make it invisible to the user.
             spriteToInject.blocks._blocks[util.thread.topBlock].topLevel = false;
-            this.testCodeInjected.push(spriteToInject.getName());
+            this.testCodeInjected.push(spriteToInject.id);
         }
     }
 
