@@ -290,6 +290,23 @@ class Scratch3ItchBlocks {
                     }
                 },
                 {
+                    opcode: 'waitUntil',
+                    blockIconURI: feedbackBlockIcon,
+                    blockType: BlockType.CONDITIONAL,
+                    branchCount: 2,
+                    text: 'wait until [CONDITION] or [SECONDS] seconds',
+                    arguments: {
+                        CONDITION: {
+                            type: ArgumentType.BOOLEAN,
+                            defaultValue: false
+                        },
+                        SECONDS: {
+                            type: ArgumentType.STRING,
+                            defaultValue: '5'
+                        }
+                    }
+                },
+                {
                     opcode: 'groupName',
                     blockIconURI: feedbackBlockIcon,
                     blockType: BlockType.CONDITIONAL,
@@ -1048,6 +1065,33 @@ class Scratch3ItchBlocks {
             // We have waited before and are still waiting, so yield the thread.
             util.yieldTick();
         }
+    }
+
+    /**
+     * Implement waitUntil.
+     * @param {object} args - the block's arguments.
+     * @param {BlockUtility} util - the util.
+     */
+    waitUntil (args, util) {
+        if (!util.stackFrame.startTime) {
+            // First time we execute this function, save the start time of the wait
+            util.stackFrame.startTime = this.runtime.currentMSecs;
+        }
+
+        if (args.CONDITION) {
+            // Condition is true, go to branch 1
+            util.startBranch(1, false);
+            return;
+        }
+
+        if (this.runtime.currentMSecs - util.stackFrame.startTime > args.SECONDS * 1000) {
+            // Time limit is reached, go to branch 2
+            util.startBranch(2, false);
+            return;
+        }
+
+        // Condition not true, time limit not reached => wait
+        util.yieldTick();
     }
 
     /**
