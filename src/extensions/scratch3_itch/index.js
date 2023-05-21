@@ -291,7 +291,6 @@ class Scratch3ItchBlocks {
                 },
                 {
                     opcode: 'waitUntil',
-                    blockIconURI: feedbackBlockIcon,
                     blockType: BlockType.CONDITIONAL,
                     branchCount: 2,
                     text: 'wait until [CONDITION] or [SECONDS] seconds',
