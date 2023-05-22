@@ -68,10 +68,6 @@ class Sequencer {
      * @return {Array.<!Thread>} List of inactive threads after stepping.
      */
     stepThreads () {
-        // If the sequencer is completely paused, don't step any threads.
-        if (this.runtime.isPaused()) {
-            return [];
-        }
 
         // Indicates if one of the threads encountered a breakpoint block.
         let executionPaused = false;

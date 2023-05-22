@@ -2199,7 +2199,9 @@ class Runtime extends EventEmitter {
             this.profiler.start(stepThreadsProfilerId);
         }
 
-        const doneThreads = this.sequencer.stepThreads();
+        // If the runtime is completely paused, don't step any threads.
+        const doneThreads = this.isPaused() ? [] : this.sequencer.stepThreads();
+
         if (this.profiler !== null) {
             this.profiler.stop();
         }
