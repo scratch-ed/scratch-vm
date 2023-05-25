@@ -254,6 +254,7 @@ class Scratch3ItchBlocks {
                 },
                 {
                     opcode: 'waitUntilOrStop',
+                    hideFromPalette: true, // hide from block menu, but don't delete block so existing projects can still be loaded
                     blockIconURI: feedbackBlockIcon,
                     blockType: BlockType.COMMAND,
                     text: 'wait until [CONDITION] or [SECONDS] seconds. feedback: [FEEDBACK]',
@@ -274,6 +275,7 @@ class Scratch3ItchBlocks {
                 },
                 {
                     opcode: 'waitUntilOrStopNoFeedback',
+                    hideFromPalette: true, // hide from block menu, but don't delete block so existing projects can still be loaded
                     blockIconURI: feedbackBlockIcon,
                     blockType: BlockType.CONDITIONAL,
                     branchCount: 1,
