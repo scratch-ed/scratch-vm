@@ -431,6 +431,7 @@ class Runtime extends EventEmitter {
     disableDebugMode () {
         this.debugMode = false;
         this.emit('DEBUG_MODE_DISABLED');
+        this.resume();
     }
 
     pause () {
@@ -2162,8 +2163,7 @@ class Runtime extends EventEmitter {
 
         this.resetRunId();
 
-        // Unpause execution when stopping.
-        this.resume();
+        // Debugger
         this._updateBlockIndications();
     }
 
