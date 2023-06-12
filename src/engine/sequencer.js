@@ -181,6 +181,7 @@ class Sequencer {
                 this.runtime.threads.length = nextActiveThread;
             }
 
+            this.runtime.emit('THREADS_EXECUTED');
             // If one of the threads encountered a breakpoint, stop stepping all together.
             if (this.runtime.inStep() || executionPaused) {
                 break;
@@ -326,9 +327,9 @@ class Sequencer {
                 this.runtime.emit('OPS_EXECUTED', ops);
             }
 
-            if (this.runtime.inStep() || pauseRequested) {
-                return;
-            }
+            // Always do one block per thread.
+            // Previously this would do the whole C-block
+            return;
         }
     }
 

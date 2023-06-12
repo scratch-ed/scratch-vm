@@ -425,6 +425,7 @@ class Runtime extends EventEmitter {
     disableDebugMode () {
         this.debugMode = false;
         this.emit('DEBUG_MODE_DISABLED');
+        this.resume();
     }
 
     pause () {
@@ -2103,8 +2104,7 @@ class Runtime extends EventEmitter {
         // Remove all remaining threads from executing in the next tick.
         this.threads = [];
 
-        // Unpause execution when stopping.
-        this.resume();
+        // Debugger
         this._updateBlockIndications();
     }
 
