@@ -252,6 +252,7 @@ class Runtime extends EventEmitter {
          * @type {!Array.<!string>}
          */
         this._blockIndicationsPreviousFrame = [];
+        this._blockColorsPreviousFrame = {};
 
         /**
          * Number of non-monitor threads running during the previous frame.
@@ -2309,37 +2310,49 @@ class Runtime extends EventEmitter {
         const requestedIndicationThisFrame = [];
         const finalBlockIndications = [];
 
+        const blockColors = {};
+
         for (let i = 0; i < searchThreads.length; i++) {
             const thread = searchThreads[i];
             const target = thread.target;
-            if (target === this._editingTarget && thread.requestScriptGlowInFrame) {
-                // 'Next' block
-                const blockForThread = thread.peekStack();
-                requestedIndicationThisFrame.push(blockForThread);
+            // if (target === this._editingTarget && thread.requestScriptGlowInFrame) {
+            if (target === this._editingTarget) {
+                // Add blocks on stack
+                for (let b = 0; b < thread.stack.length; b++) {
+                    requestedIndicationThisFrame.push(thread.stack[b]);
+                    // Whole stack is grey, current block is black
+                    if (b < thread.stack.length - 1) {
+                        blockColors[thread.stack[b]] = '#AAAAAA';
+                    } else {
+                        blockColors[thread.stack[b]] = '#696969';
+                    }
+                }
             }
         }
 
         for (let j = 0; j < this._blockIndicationsPreviousFrame.length; j++) {
-            const previousFrameGlow = this._blockIndicationsPreviousFrame[j];
-            if (requestedIndicationThisFrame.indexOf(previousFrameGlow) < 0) {
+            const previousBlockIndication = this._blockIndicationsPreviousFrame[j];
+            if (requestedIndicationThisFrame.indexOf(previousBlockIndication) < 0) {
                 // Glow turned off.
-                this.indicateBlock(previousFrameGlow, false);
+                this.indicateBlock(previousBlockIndication, false);
             } else {
                 // Still glowing.
-                finalBlockIndications.push(previousFrameGlow);
+                finalBlockIndications.push(previousBlockIndication);
             }
         }
 
         for (let k = 0; k < requestedIndicationThisFrame.length; k++) {
-            const currentFrameGlow = requestedIndicationThisFrame[k];
-            if (this._blockIndicationsPreviousFrame.indexOf(currentFrameGlow) < 0) {
+            const currentBlock = requestedIndicationThisFrame[k];
+            if (this._blockIndicationsPreviousFrame.indexOf(currentBlock) < 0 ||
+                this._blockColorsPreviousFrame[currentBlock] !== blockColors[currentBlock]) {
                 // Glow turned on.
-                this.indicateBlock(currentFrameGlow, true);
-                finalBlockIndications.push(currentFrameGlow);
+                this.indicateBlock(currentBlock, true, blockColors[currentBlock]);
+                finalBlockIndications.push(currentBlock);
             }
         }
 
         this._blockIndicationsPreviousFrame = finalBlockIndications;
+        this._blockColorsPreviousFrame = blockColors;
     }
 
     /**
@@ -2384,9 +2397,9 @@ class Runtime extends EventEmitter {
         }
     }
 
-    indicateBlock (blockId, isIndicated) {
+    indicateBlock (blockId, isIndicated, color ) {
         if (isIndicated) {
-            this.emit(Runtime.BLOCK_INDICATE_ON, {id: blockId});
+            this.emit(Runtime.BLOCK_INDICATE_ON, {id: blockId, color});
         } else {
             this.emit(Runtime.BLOCK_INDICATE_OFF, {id: blockId});
         }
