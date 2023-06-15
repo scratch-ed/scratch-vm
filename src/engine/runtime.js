@@ -2377,15 +2377,17 @@ class Runtime extends EventEmitter {
             // if (target === this._editingTarget && thread.requestScriptGlowInFrame) {
             if (target === this._editingTarget) {
                 // Add blocks on stack
-                for (let b = 0; b < thread.stack.length; b++) {
-                    requestedIndicationThisFrame.push(thread.stack[b]);
-                    // Whole stack is grey, current block is black
-                    if (b < thread.stack.length - 1) {
+                for (let b = 0; b < thread.stack.length - 1; b++) {
+                    if (thread.blockContainer &&
+                        thread.blockContainer.getBlock(thread.stack[b]).opcode === 'procedures_call') {
+                        requestedIndicationThisFrame.push(thread.stack[b]);
+                        // Lighter grey
                         blockColors[thread.stack[b]] = '#AAAAAA';
-                    } else {
-                        blockColors[thread.stack[b]] = '#696969';
                     }
                 }
+                // Top block of stack (is the next to execute), darker grey
+                requestedIndicationThisFrame.push(thread.peekStack());
+                blockColors[thread.peekStack()] = '#696969';
             }
         }
 
