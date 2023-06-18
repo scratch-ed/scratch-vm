@@ -1926,6 +1926,10 @@ class Runtime extends EventEmitter {
             thread.goToNextBlock();
         });
 
+        if (newThreads.length) {
+            this.emit('THREADS_EXECUTED');
+        }
+
         return newThreads;
     }
 
