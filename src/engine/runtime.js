@@ -2322,13 +2322,23 @@ class Runtime extends EventEmitter {
             // if (target === this._editingTarget && thread.requestScriptGlowInFrame) {
             if (target === this._editingTarget) {
                 // Add blocks on stack
-                for (let b = 0; b < thread.stack.length - 1; b++) {
-                    if (thread.blockContainer &&
-                        thread.blockContainer.getBlock(thread.stack[b]).opcode === 'procedures_call') {
-                        requestedIndicationThisFrame.push(thread.stack[b]);
-                        // Lighter grey
-                        blockColors[thread.stack[b]] = '#AAAAAA';
+                if (thread.blockContainer) {
+                    for (let b = 0; b < thread.stack.length - 1; b++) {
+                        if (thread.blockContainer.getBlock(thread.stack[b])?.opcode === 'procedures_call') {
+                            requestedIndicationThisFrame.push(thread.stack[b]);
+                            // Lighter grey
+                            blockColors[thread.stack[b]] = '#AAAAAA';
+                        }
                     }
+                    // // If the previous block is a pause, highlight it.
+                    // let parent = thread.blockContainer.getBlock(thread.peekStack())?.parent;
+                    // parent = thread.blockContainer.getBlock(parent);
+                    // // TODO fix isPaused()
+                    // if (parent && parent.opcode?.startsWith('debugger_') && this.isPaused()) {
+                    //     requestedIndicationThisFrame.push(parent.id);
+                    //     // Lighter grey
+                    //     blockColors[parent.id] = '#AAAAAA';
+                    // }
                 }
                 // Top block of stack (is the next to execute), darker grey
                 requestedIndicationThisFrame.push(thread.peekStack());

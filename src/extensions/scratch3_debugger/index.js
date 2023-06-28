@@ -75,21 +75,6 @@ class Scratch3DebuggerBlocks {
                         }
                     }
                 },
-                // {
-                //     opcode: 'waitUntilConditionalAndBreak',
-                //     blockType: BlockType.HAT,
-                //     text: formatMessage({
-                //         id: 'debugger.waitUntilConditionalAndBreak',
-                //         default: 'Pauzeer als [CONDITION]',
-                //         description: 'Pauzeer eender wanneer als de voorwaarde voldaan is'
-                //     }),
-                //     isTerminal: true,
-                //     arguments: {
-                //         CONDITION: {
-                //             type: ArgumentType.BOOLEAN
-                //         }
-                //     }
-                // },
                 {
                     opcode: 'debugModeEnabled',
                     blockType: BlockType.BOOLEAN,
@@ -142,13 +127,6 @@ class Scratch3DebuggerBlocks {
             this.runtime.requestPause();
         }
     }
-    // WaitUntilConditionalAndBreak (args, util) {
-    //     if (this.runtime.debugMode && Cast.toBoolean(args.CONDITION)) {
-    //         this.runtime.requestPause();
-    //         return true;
-    //     }
-    //     return false;
-    // }
 
     /**
      * The "debugModeEnabled" block indicates whether debug mode is enabled.
