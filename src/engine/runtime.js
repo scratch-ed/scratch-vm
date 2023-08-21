@@ -415,6 +415,11 @@ class Runtime extends EventEmitter {
 
         this.pauseRequested = false;
         // DEBUGGER VARIABLES
+
+        // TEST VARIABLES
+        this.testFlagClicked = false;
+        this.feedbackTrees = {}; // A dict of feedback trees, each tree belongs to 1 test thread.
+        // TEST VARIABLES
     }
 
     // DEBUGGER METHODS
@@ -467,6 +472,15 @@ class Runtime extends EventEmitter {
         this.pauseRequested = true;
     }
     // DEBUGGER METHODS
+
+    // TEST METHODS
+    /**
+     * @returns {Array.<string>} - an array containing the test results.
+     */
+    getTestResults () {
+        return this.feedbackTrees;
+    }
+    // TEST METHODS
 
     /**
      * Width of the stage, in pixels.
@@ -556,6 +570,14 @@ class Runtime extends EventEmitter {
      */
     static get PROJECT_START () {
         return 'PROJECT_START';
+    }
+
+    /**
+     * Event name when the tests are started.
+     * @const {string}
+     */
+    static get PROJECT_TESTS_START () {
+        return 'PROJECT_TESTS_START';
     }
 
     /**
@@ -1755,7 +1777,7 @@ class Runtime extends EventEmitter {
      * Toggle a script.
      * @param {!string} topBlockId ID of block that starts the script.
      * @param {?object} opts optional arguments to toggle script
-     * @param {?string} opts.target target ID for target to run script on. If not supplied, uses editing target.
+     * @param {?Target} opts.target target to run script on. If not supplied, uses editing target.
      * @param {?boolean} opts.stackClick true if the user activated the stack by clicking, false if not. This
      *     determines whether we show a visual report when turning on the script.
      */
@@ -2078,6 +2100,14 @@ class Runtime extends EventEmitter {
             this.targets[i].onGreenFlag();
         }
         this.startHats('event_whenflagclicked');
+    }
+
+    /**
+     * Start the test thread.
+     */
+    testFlag () {
+        this.testFlagClicked = true;
+        this.emit(Runtime.PROJECT_TESTS_START);
     }
 
     /**

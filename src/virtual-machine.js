@@ -189,6 +189,13 @@ class VirtualMachine extends EventEmitter {
     }
 
     /**
+     * "Test flag" handler - start the test thread.
+     */
+    testFlag () {
+        this.runtime.testFlag();
+    }
+
+    /**
      * Set whether the VM is in "turbo mode."
      * When true, loops don't yield to redraw.
      * @param {boolean} turboModeOn Whether turbo mode should be set.
