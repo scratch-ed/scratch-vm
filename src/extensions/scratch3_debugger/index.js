@@ -42,8 +42,8 @@ class Scratch3DebuggerBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'debugger.break',
-                        default: 'pauzeer',
-                        description: 'pauzeer de uitvoering'
+                        default: 'pause',
+                        description: 'pause the execution'
                     })
                 },
                 {
@@ -51,8 +51,8 @@ class Scratch3DebuggerBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'debugger.breakConditional',
-                        default: 'pauzeer als [CONDITION]',
-                        description: 'pauzeer de uitvoering als een voorwaarde voldaan is'
+                        default: 'pause if [CONDITION]',
+                        description: 'pause the execution if the condition holds'
                     }),
                     arguments: {
                         CONDITION: {
@@ -65,8 +65,8 @@ class Scratch3DebuggerBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'debugger.waitUntilConditionalAndBreak',
-                        default: 'watch tot [CONDITION] en pauzeer dan',
-                        description: 'Wacht tot een voorwaarde voldaan is, als de voorwaarde voldaan is, pauzeer'
+                        default: 'wait until [CONDITION] and pause',
+                        description: 'wait until a condition holds and then pause'
                     }),
                     // isTerminal: true,
                     arguments: {
@@ -80,8 +80,8 @@ class Scratch3DebuggerBlocks {
                     blockType: BlockType.BOOLEAN,
                     text: formatMessage({
                         id: 'debugger.debuggerEnabled',
-                        default: 'de debugger ingeschakeld is',
-                        description: 'is de debugger ingeschakeld?'
+                        default: 'debugger is enabled?',
+                        description: 'is the debugger enabled?'
                     })
                 }
             ]
