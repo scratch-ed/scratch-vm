@@ -1,5 +1,6 @@
 const EventEmitter = require('events');
 const {OrderedMap} = require('immutable');
+const uuid = require('uuid');
 
 const ArgumentType = require('../extension-support/argument-type');
 const Blocks = require('./blocks');
@@ -17,6 +18,7 @@ const StageLayering = require('./stage-layering');
 const Variable = require('./variable');
 const xmlEscape = require('../util/xml-escape');
 const ScratchLinkWebSocket = require('../util/scratch-link-websocket');
+const fetchWithTimeout = require('../util/fetch-with-timeout');
 
 // Virtual I/O devices.
 const Clock = require('../io/clock');
@@ -405,6 +407,10 @@ class Runtime extends EventEmitter {
          * @type {?string}
          */
         this.origin = null;
+
+        this._initScratchLink();
+
+        this.resetRunId();
 
         // DEBUGGER VARIABLES
         this.debugMode = false;
@@ -1513,6 +1519,38 @@ class Runtime extends EventEmitter {
     }
 
     /**
+     * One-time initialization for Scratch Link support.
+     */
+    _initScratchLink () {
+        // Check that we're actually in a real browser, not Node.js or JSDOM, and we have a valid-looking origin.
+        // note that `if (self?....)` will throw if `self` is undefined, so check for that first!
+        if (typeof self !== 'undefined' &&
+            typeof document !== 'undefined' &&
+            document.getElementById &&
+            self.origin &&
+            self.origin !== 'null' && // note this is a string comparison, not a null check
+            self.navigator &&
+            self.navigator.userAgent &&
+            !(
+                self.navigator.userAgent.includes('Node.js') ||
+                self.navigator.userAgent.includes('jsdom')
+            )
+        ) {
+            // Create a script tag for the Scratch Link browser extension, unless one already exists
+            const scriptElement = document.getElementById('scratch-link-extension-script');
+            if (!scriptElement) {
+                const script = document.createElement('script');
+                script.id = 'scratch-link-extension-script';
+                document.body.appendChild(script);
+
+                // Tell the browser extension to inject its script.
+                // If the extension isn't present or isn't active, this will do nothing.
+                self.postMessage('inject-scratch-link-script', self.origin);
+            }
+        }
+    }
+
+    /**
      * Get a scratch link socket.
      * @param {string} type Either BLE or BT
      * @returns {ScratchLinkSocket} The scratch link socket.
@@ -1537,7 +1575,11 @@ class Runtime extends EventEmitter {
      * @returns {ScratchLinkSocket} The new scratch link socket (a WebSocket object)
      */
     _defaultScratchLinkSocketFactory (type) {
-        return new ScratchLinkWebSocket(type);
+        const Scratch = self.Scratch;
+        const ScratchLinkSafariSocket = Scratch && Scratch.ScratchLinkSafariSocket;
+        // detect this every time in case the user turns on the extension after loading the page
+        const useSafariSocket = ScratchLinkSafariSocket && ScratchLinkSafariSocket.isSafariHelperCompatible();
+        return useSafariSocket ? new ScratchLinkSafariSocket(type) : new ScratchLinkWebSocket(type);
     }
 
     /**
@@ -1663,6 +1705,8 @@ class Runtime extends EventEmitter {
      */
     attachStorage (storage) {
         this.storage = storage;
+        fetchWithTimeout.setFetch(storage.scratchFetch.scratchFetch);
+        this.resetRunId();
     }
 
     // -----------------------------------------------------------------------------
@@ -2066,6 +2110,19 @@ class Runtime extends EventEmitter {
     }
 
     /**
+     * Reset the Run ID. Call this any time the project logically starts, stops, or changes identity.
+     */
+    resetRunId () {
+        if (!this.storage) {
+            // see also: attachStorage
+            return;
+        }
+
+        const newRunId = uuid.v1();
+        this.storage.scratchFetch.setMetadata(this.storage.scratchFetch.RequestMetadata.RunId, newRunId);
+    }
+
+    /**
      * Start all threads that start with the green flag.
      */
     greenFlag () {
@@ -2105,6 +2162,8 @@ class Runtime extends EventEmitter {
         }
         // Remove all remaining threads from executing in the next tick.
         this.threads = [];
+
+        this.resetRunId();
 
         // Unpause execution when stopping.
         this.resume();
@@ -2579,10 +2638,11 @@ class Runtime extends EventEmitter {
     }
 
     /**
-     * Report that the project has loaded in the Virtual Machine.
+     * Handle that the project has loaded in the Virtual Machine.
      */
-    emitProjectLoaded () {
+    handleProjectLoaded () {
         this.emit(Runtime.PROJECT_LOADED);
+        this.resetRunId();
     }
 
     /**
@@ -2733,6 +2793,15 @@ class Runtime extends EventEmitter {
             this._step();
         }, interval);
         this.emit(Runtime.RUNTIME_STARTED);
+    }
+
+    /**
+     * Quit the Runtime, clearing any handles which might keep the process alive.
+     * Do not use the runtime after calling this method. This method is meant for test shutdown.
+     */
+    quit () {
+        clearInterval(this._steppingInterval);
+        this._steppingInterval = null;
     }
 
     /**
