@@ -40,14 +40,3 @@ jobs:
           mkdir -p ./test/results
       - run: npm test
       - run: npm run build
-      - name: Deploy to GH Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: playground
-          full_commit_message: "Build for ${{ github.sha }} ${{ github.event.head_commit.message }}"
-      - name: semantic-release
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx --no -- semantic-release
