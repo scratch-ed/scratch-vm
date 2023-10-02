@@ -398,6 +398,8 @@ const _prepareBlockProfiling = function (profiler, blockCached) {
  * Execute a block.
  * @param {!Sequencer} sequencer Which sequencer is executing.
  * @param {!Thread} thread Thread which to read and execute.
+ *
+ * @returns {any | BlockCached[]} ops
  */
 const execute = function (sequencer, thread) {
     const runtime = sequencer.runtime;
@@ -579,7 +581,7 @@ const execute = function (sequencer, thread) {
         }
     }
 
-    sequencer.runtime.emit('OPS_EXECUTED', ops);
+    return ops;
 };
 
 module.exports = execute;

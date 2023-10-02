@@ -42,8 +42,8 @@ class Scratch3DebuggerBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'debugger.break',
-                        default: 'break',
-                        description: 'break the execution'
+                        default: 'pause',
+                        description: 'pause the execution'
                     })
                 },
                 {
@@ -51,9 +51,24 @@ class Scratch3DebuggerBlocks {
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
                         id: 'debugger.breakConditional',
-                        default: 'break if [CONDITION]',
-                        description: 'break the execution based on a condition'
+                        default: 'pause if [CONDITION]',
+                        description: 'pause the execution if the condition holds'
                     }),
+                    arguments: {
+                        CONDITION: {
+                            type: ArgumentType.BOOLEAN
+                        }
+                    }
+                },
+                {
+                    opcode: 'waitUntilConditionalAndBreak',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'debugger.waitUntilConditionalAndBreak',
+                        default: 'wait until [CONDITION] and pause',
+                        description: 'wait until a condition holds and then pause'
+                    }),
+                    // isTerminal: true,
                     arguments: {
                         CONDITION: {
                             type: ArgumentType.BOOLEAN
@@ -65,8 +80,8 @@ class Scratch3DebuggerBlocks {
                     blockType: BlockType.BOOLEAN,
                     text: formatMessage({
                         id: 'debugger.debuggerEnabled',
-                        default: 'debug mode enabled',
-                        description: 'is debug mode enabled?'
+                        default: 'debugger is enabled?',
+                        description: 'is the debugger enabled?'
                     })
                 }
             ]
@@ -96,6 +111,21 @@ class Scratch3DebuggerBlocks {
         }
 
         this.runtime.requestPause();
+    }
+
+    /**
+     * The "waitUntilConditionalAndBreak" block breaks the execution of the program
+     * if the condition evaluates to true.
+     *
+     * @param {object} args - the block's arguments
+     * @param {object} util - Util
+     */
+    waitUntilConditionalAndBreak (args, util) {
+        if (!this.runtime.debugMode || !Cast.toBoolean(args.CONDITION)) {
+            util.yield();
+        } else {
+            this.runtime.requestPause();
+        }
     }
 
     /**

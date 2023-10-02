@@ -1,5 +1,5 @@
 const EventEmitter = require('events');
-const {OrderedMap} = require('immutable');
+const {OrderedMap, Map} = require('immutable');
 const uuid = require('uuid');
 
 const ArgumentType = require('../extension-support/argument-type');
@@ -254,6 +254,7 @@ class Runtime extends EventEmitter {
          * @type {!Array.<!string>}
          */
         this._blockIndicationsPreviousFrame = [];
+        this._blockColorsPreviousFrame = {};
 
         /**
          * Number of non-monitor threads running during the previous frame.
@@ -414,7 +415,6 @@ class Runtime extends EventEmitter {
 
         // DEBUGGER VARIABLES
         this.debugMode = false;
-        this.rewindMode = false;
 
         this.isRunPaused = false;
         this.isStepPaused = false;
@@ -432,16 +432,7 @@ class Runtime extends EventEmitter {
     disableDebugMode () {
         this.debugMode = false;
         this.emit('DEBUG_MODE_DISABLED');
-    }
-
-    enableRewindMode () {
-        this.rewindMode = true;
-        this.emit('REWIND_MODE_ENABLED');
-    }
-
-    disableRewindMode () {
-        this.rewindMode = false;
-        this.emit('REWIND_MODE_DISABLED');
+        this.resume();
     }
 
     pause () {
@@ -1713,6 +1704,19 @@ class Runtime extends EventEmitter {
     // -----------------------------------------------------------------------------
 
     /**
+     * Restores a thread that was previously in the threads of this runtime
+     * The target that was associated with the thread (Thread.target),
+     * should still be in the target list of this runtime
+     * @param  {string} threadJson A JSON string representing the thread, as created by Thread.toJSON()
+     * @return {Thread} The newly created thread
+     */
+    restoreThread (threadJson) {
+        const thread = Thread.restoreJSON(threadJson, this.targets);
+        this.threads.push(thread);
+        return thread;
+    }
+
+    /**
      * Create a thread and push it to the list of threads.
      * @param {!string} id ID of block that starts the stack.
      * @param {!Target} target Target to run thread on.
@@ -1891,11 +1895,6 @@ class Runtime extends EventEmitter {
      * @return {Array.<Thread>} List of threads started by this function.
      */
     startHats (requestedHatOpcode, optMatchFields, optTarget) {
-        // Disable starting hats when in rewind mode.
-        if (this.rewindMode) {
-            return;
-        }
-
         if (!this._hats.hasOwnProperty(requestedHatOpcode)) {
             // No known hat with this opcode.
             return;
@@ -1970,6 +1969,10 @@ class Runtime extends EventEmitter {
             execute(this.sequencer, thread);
             thread.goToNextBlock();
         });
+
+        if (newThreads.length) {
+            this.emit('THREADS_EXECUTED');
+        }
 
         return newThreads;
     }
@@ -2165,8 +2168,7 @@ class Runtime extends EventEmitter {
 
         this.resetRunId();
 
-        // Unpause execution when stopping.
-        this.resume();
+        // Debugger
         this._updateBlockIndications();
     }
 
@@ -2202,12 +2204,9 @@ class Runtime extends EventEmitter {
             this.profiler.start(stepThreadsProfilerId);
         }
 
-        // Only allow the execution of watches in rewind mode.
-        if (this.rewindMode) {
-            this.threads = this.threads.filter(thread => thread.updateMonitor);
-        }
+        // If the runtime is completely paused, don't step any threads.
+        const doneThreads = this.isPaused() ? [] : this.sequencer.stepThreads();
 
-        const doneThreads = this.sequencer.stepThreads();
         if (this.profiler !== null) {
             this.profiler.stop();
         }
@@ -2362,10 +2361,6 @@ class Runtime extends EventEmitter {
     }
 
     _updateBlockIndications (optExtraThreads) {
-        if (this.rewindMode) {
-            return;
-        }
-
         const searchThreads = [];
 
         if (this.debugMode) {
@@ -2378,36 +2373,61 @@ class Runtime extends EventEmitter {
         const requestedIndicationThisFrame = [];
         const finalBlockIndications = [];
 
+        const blockColors = {};
+
         for (let i = 0; i < searchThreads.length; i++) {
             const thread = searchThreads[i];
             const target = thread.target;
-            if (target === this._editingTarget && thread.requestScriptGlowInFrame) {
-                const blockForThread = thread.blockGlowInFrame;
-                requestedIndicationThisFrame.push(blockForThread);
+            // if (target === this._editingTarget && thread.requestScriptGlowInFrame) {
+            if (target === this._editingTarget) {
+                // Add blocks on stack
+                if (thread.blockContainer) {
+                    for (let b = 0; b < thread.stack.length - 1; b++) {
+                        if (thread.blockContainer.getBlock(thread.stack[b])?.opcode === 'procedures_call') {
+                            requestedIndicationThisFrame.push(thread.stack[b]);
+                            // Lighter grey
+                            blockColors[thread.stack[b]] = '#AAAAAA';
+                        }
+                    }
+                    // // If the previous block is a pause, highlight it.
+                    // let parent = thread.blockContainer.getBlock(thread.peekStack())?.parent;
+                    // parent = thread.blockContainer.getBlock(parent);
+                    // // TODO fix isPaused()
+                    // if (parent && parent.opcode?.startsWith('debugger_') && this.isPaused()) {
+                    //     requestedIndicationThisFrame.push(parent.id);
+                    //     // Lighter grey
+                    //     blockColors[parent.id] = '#AAAAAA';
+                    // }
+                }
+                // Top block of stack (is the next to execute), darker grey
+                requestedIndicationThisFrame.push(thread.peekStack());
+                blockColors[thread.peekStack()] = '#696969';
             }
         }
 
         for (let j = 0; j < this._blockIndicationsPreviousFrame.length; j++) {
-            const previousFrameGlow = this._blockIndicationsPreviousFrame[j];
-            if (requestedIndicationThisFrame.indexOf(previousFrameGlow) < 0) {
+            const previousBlockIndication = this._blockIndicationsPreviousFrame[j];
+            if (requestedIndicationThisFrame.indexOf(previousBlockIndication) < 0) {
                 // Glow turned off.
-                this.indicateBlock(previousFrameGlow, false);
+                this.indicateBlock(previousBlockIndication, false);
             } else {
                 // Still glowing.
-                finalBlockIndications.push(previousFrameGlow);
+                finalBlockIndications.push(previousBlockIndication);
             }
         }
 
         for (let k = 0; k < requestedIndicationThisFrame.length; k++) {
-            const currentFrameGlow = requestedIndicationThisFrame[k];
-            if (this._blockIndicationsPreviousFrame.indexOf(currentFrameGlow) < 0) {
+            const currentBlock = requestedIndicationThisFrame[k];
+            if (this._blockIndicationsPreviousFrame.indexOf(currentBlock) < 0 ||
+                this._blockColorsPreviousFrame[currentBlock] !== blockColors[currentBlock]) {
                 // Glow turned on.
-                this.indicateBlock(currentFrameGlow, true);
-                finalBlockIndications.push(currentFrameGlow);
+                this.indicateBlock(currentBlock, true, blockColors[currentBlock]);
+                finalBlockIndications.push(currentBlock);
             }
         }
 
         this._blockIndicationsPreviousFrame = finalBlockIndications;
+        this._blockColorsPreviousFrame = blockColors;
     }
 
     /**
@@ -2452,9 +2472,9 @@ class Runtime extends EventEmitter {
         }
     }
 
-    indicateBlock (blockId, isIndicated) {
+    indicateBlock (blockId, isIndicated, color ) {
         if (isIndicated) {
-            this.emit(Runtime.BLOCK_INDICATE_ON, {id: blockId});
+            this.emit(Runtime.BLOCK_INDICATE_ON, {id: blockId, color});
         } else {
             this.emit(Runtime.BLOCK_INDICATE_OFF, {id: blockId});
         }

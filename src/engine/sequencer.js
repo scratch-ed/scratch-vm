@@ -68,10 +68,6 @@ class Sequencer {
      * @return {Array.<!Thread>} List of inactive threads after stepping.
      */
     stepThreads () {
-        // If the sequencer is completely paused, don't step any threads.
-        if (this.runtime.isPaused()) {
-            return [];
-        }
 
         // Indicates if one of the threads encountered a breakpoint block.
         let executionPaused = false;
@@ -89,6 +85,7 @@ class Sequencer {
         // Whether `stepThreads` has run through a full single tick.
         let ranFirstTick = false;
         const doneThreads = [];
+        let executedThread = false;
         // Conditions for continuing to stepping threads:
         // 1. We must have threads in the list, and some must be active.
         // 2. Time elapsed must be less than WORK_TIME.
@@ -134,7 +131,7 @@ class Sequencer {
                         this.runtime.profiler.increment(stepThreadProfilerId);
                     }
 
-                    this.stepThread(activeThread);
+                    executedThread |= this.stepThread(activeThread);
                     executionPaused = this.runtime.pauseRequested;
 
                     activeThread.warpTimer = null;
@@ -185,6 +182,9 @@ class Sequencer {
                 this.runtime.threads.length = nextActiveThread;
             }
 
+            if (executedThread) {
+                this.runtime.emit('THREADS_EXECUTED');
+            }
             // If one of the threads encountered a breakpoint, stop stepping all together.
             if (this.runtime.inStep() || executionPaused) {
                 break;
@@ -204,6 +204,7 @@ class Sequencer {
     /**
      * Step the requested thread for as long as necessary.
      * @param {!Thread} thread Thread object to step.
+     * @return {boolean} Whether something was actually executed
      */
     stepThread (thread) {
         let currentBlockId = thread.peekStack();
@@ -214,7 +215,7 @@ class Sequencer {
             // Did the null follow a hat block?
             if (thread.stack.length === 0) {
                 thread.status = Thread.STATUS_DONE;
-                return;
+                return false;
             }
         }
 
@@ -237,6 +238,7 @@ class Sequencer {
                 // Increment the number of times execute is called.
                 this.runtime.profiler.increment(executeProfilerId);
             }
+
             if (thread.target === null) {
                 this.retireThread(thread);
             } else {
@@ -255,15 +257,15 @@ class Sequencer {
                     continue;
                 }
 
-                return;
+                return false;
             } else if (thread.status === Thread.STATUS_PROMISE_WAIT) {
                 // A promise was returned by the primitive. Yield the thread
                 // until the promise resolves. Promise resolution should reset
                 // thread.status to Thread.STATUS_RUNNING.
-                return;
+                return true;
             } else if (thread.status === Thread.STATUS_YIELD_TICK) {
                 // stepThreads will reset the thread to Thread.STATUS_RUNNING
-                return;
+                return true;
             }
 
             // If no control flow has happened, switch to next block.
@@ -278,7 +280,7 @@ class Sequencer {
                 if (thread.stack.length === 0) {
                     // No more stack to run!
                     thread.status = Thread.STATUS_DONE;
-                    return;
+                    return true;
                 }
 
                 const stackFrame = thread.peekStackFrame();
@@ -292,7 +294,7 @@ class Sequencer {
                     if (pauseRequested || !isWarpMode || thread.warpTimer.timeElapsed() > Sequencer.WARP_TIME) {
                         // Don't do anything to the stack, since loops need
                         // to be re-executed.
-                        return;
+                        return true;
                     }
 
                     // Don't go to the next block for this level of the stack,
@@ -302,16 +304,16 @@ class Sequencer {
                     // This level of the stack was waiting for a value.
                     // This means a reporter has just returned - so don't go
                     // to the next block for this level of the stack.
-                    return;
+                    return true;
                 }
 
                 // Get next block of existing block on the stack.
                 thread.goToNextBlock();
             }
 
-            if (this.runtime.inStep() || pauseRequested) {
-                return;
-            }
+            // Always do one block per thread, so return out of while loop
+            // Previously this would do the whole C-block
+            return true;
         }
     }
 
