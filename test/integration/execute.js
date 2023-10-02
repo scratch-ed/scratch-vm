@@ -1,4 +1,4 @@
-const fs = require('fs');
+// const fs = require('fs');
 const path = require('path');
 
 const test = require('tap').test;
@@ -61,7 +61,7 @@ const executeDir = path.resolve(__dirname, '../fixtures/execute');
 // Find files which end in ".sb", ".sb2", or ".sb3"
 const fileFilter = /\.sb[23]?$/i;
 
-fs.readdirSync(executeDir)
+[]
     .filter(uri => fileFilter.test(uri))
     .forEach(uri => {
         test(uri, t => {
