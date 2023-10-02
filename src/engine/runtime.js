@@ -2383,7 +2383,8 @@ class Runtime extends EventEmitter {
                 // Add blocks on stack
                 if (thread.blockContainer) {
                     for (let b = 0; b < thread.stack.length - 1; b++) {
-                        if (thread.blockContainer.getBlock(thread.stack[b])?.opcode === 'procedures_call') {
+                        const block = thread.blockContainer.getBlock(thread.stack[b]);
+                        if (block && block.opcode === 'procedures_call') {
                             requestedIndicationThisFrame.push(thread.stack[b]);
                             // Lighter grey
                             blockColors[thread.stack[b]] = '#AAAAAA';
@@ -2472,7 +2473,7 @@ class Runtime extends EventEmitter {
         }
     }
 
-    indicateBlock (blockId, isIndicated, color ) {
+    indicateBlock (blockId, isIndicated, color) {
         if (isIndicated) {
             this.emit(Runtime.BLOCK_INDICATE_ON, {id: blockId, color});
         } else {
