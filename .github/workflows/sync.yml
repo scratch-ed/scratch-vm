@@ -16,3 +16,4 @@ jobs:
           owner: scratchfoundation
           base: development
           head: develop
+          auto_merge: false
