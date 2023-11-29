@@ -32,6 +32,7 @@ const Video = require('../io/video');
 
 const StringUtil = require('../util/string-util');
 const uid = require('../util/uid');
+const { request } = require('http');
 
 const defaultBlockPackages = {
     scratch3_control: require('../blocks/scratch3_control'),
@@ -1988,10 +1989,9 @@ class Runtime extends EventEmitter {
             thread.goToNextBlock();
         });
 
-        if (newThreads.length) {
+        if (newThreads.length && requestedHatOpcode !== 'control_start_as_clone') {
             this.emit('THREADS_EXECUTED');
         }
-
         return newThreads;
     }
 
