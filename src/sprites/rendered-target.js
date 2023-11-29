@@ -12,10 +12,11 @@ class RenderedTarget extends Target {
     /**
      * @param {!Sprite} sprite Reference to the parent sprite.
      * @param {Runtime} runtime Reference to the runtime.
+     * @param {string=} id optional id for the target.
      * @constructor
      */
-    constructor (sprite, runtime) {
-        super(runtime, sprite.blocks);
+    constructor (sprite, runtime, id = null) {
+        super(runtime, sprite.blocks, id);
 
         /**
          * Reference to the sprite that this is a render of.
@@ -950,14 +951,15 @@ class RenderedTarget extends Target {
     /**
      * Make a clone, copying any run-time properties.
      * If we've hit the global clone limit, returns null.
+     * @param {string=} id optional id for the clone.
      * @return {RenderedTarget} New clone.
      */
-    makeClone () {
+    makeClone (id) {
         if (!this.runtime.clonesAvailable() || this.isStage) {
             return null; // Hit max clone limit, or this is the stage.
         }
         this.runtime.changeCloneCounter(1);
-        const newClone = this.sprite.createClone();
+        const newClone = this.sprite.createClone(null, id);
         // Copy all properties.
         newClone.x = this.x;
         newClone.y = this.y;
