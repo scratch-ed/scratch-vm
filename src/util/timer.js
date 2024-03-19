@@ -33,7 +33,7 @@ class Timer {
      * @type {boolean}
      */
     static get USE_PERFORMANCE () {
-        return false;
+        return true;
     }
 
     /**
