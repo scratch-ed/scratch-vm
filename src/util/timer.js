@@ -65,7 +65,8 @@ class Timer {
      * @returns {number} ms elapsed since 1 January 1970 00:00:00 UTC.
      */
     time () {
-        return this.nowObj.now();
+        // return this.nowObj.now();
+        return self.performance.now();
     }
 
     /**
@@ -76,7 +77,8 @@ class Timer {
      * @returns {number} ms-scale accurate time relative to other relative times.
      */
     relativeTime () {
-        return this.nowObj.now();
+        // return this.nowObj.now();
+        return self.performance.now();
     }
 
     /**
@@ -84,11 +86,13 @@ class Timer {
      * at the most accurate precision possible.
      */
     start () {
-        this.startTime = this.nowObj.now();
+        // this.startTime = this.nowObj.now();
+        this.startTime = self.performance.now();
     }
 
     timeElapsed () {
-        return this.nowObj.now() - this.startTime;
+        // this.nowObj.now() - this.startTime;
+        return self.performance.now() - this.startTime;
     }
 
     /**
