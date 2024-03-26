@@ -1970,7 +1970,7 @@ class Runtime extends EventEmitter {
             thread.goToNextBlock();
         });
 
-        if (newThreads.length) {
+        if (newThreads.length && requestedHatOpcode !== 'control_start_as_clone') {
             this.emit('THREADS_EXECUTED');
         }
 

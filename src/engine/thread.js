@@ -1,3 +1,4 @@
+const Timer = require('../util/timer');
 /**
  * Recycle bin for empty stackFrame objects
  * @type Array<_StackFrame>
@@ -142,6 +143,11 @@ class _StackFrame {
         newStackFrame.waitingReporter = object.waitingReporter;
         newStackFrame.params = object.params;
         newStackFrame.executionContext = object.executionContext;
+        if (newStackFrame.executionContext && newStackFrame.executionContext.timer) {
+            const timer = new Timer();
+            timer.startTime = newStackFrame.executionContext.timer.startTime;
+            newStackFrame.executionContext.timer = timer;
+        }
 
         return newStackFrame;
     }
