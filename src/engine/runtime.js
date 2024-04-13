@@ -308,19 +308,10 @@ class Runtime extends EventEmitter {
         this.compatibilityMode = false;
 
         /**
-         * A reference to the current runtime stepping interval, set
-         * by a `setInterval`.
+         * A reference to the current runtime stepping timeout.
          * @type {!number}
          */
-        this._steppingInterval = null;
-
-        /**
-         * Current length of a step.
-         * Changes as mode switches, and used by the sequencer to calculate
-         * WORK_TIME.
-         * @type {!number}
-         */
-        this.currentStepTime = null;
+        this._steppingTimeout = null;
 
         // Set an intial value for this.currentMSecs
         this.updateCurrentMSecs();
@@ -769,20 +760,6 @@ class Runtime extends EventEmitter {
      */
     static get BLOCKS_NEED_UPDATE () {
         return 'BLOCKS_NEED_UPDATE';
-    }
-
-    /**
-     * How rapidly we try to step threads by default, in ms.
-     */
-    static get THREAD_STEP_INTERVAL () {
-        return 1000 / 60;
-    }
-
-    /**
-     * In compatibility mode, how rapidly we try to step threads, in ms.
-     */
-    static get THREAD_STEP_INTERVAL_COMPATIBILITY () {
-        return 1000 / 30;
     }
 
     /**
@@ -2196,18 +2173,14 @@ class Runtime extends EventEmitter {
         this.redrawRequested = false;
         this._pushMonitors();
 
-        // Work time is 75% of the thread stepping interval.
-        const WORK_TIME = 0.75 * this.currentStepTime;
         // For compatibility with Scatch 2, update the millisecond clock
         // on the Runtime once per step (see Interpreter.as in Scratch 2
         // for original use of `currentMSecs`)
         this.updateCurrentMSecs();
-        // Start counting toward WORK_TIME.
-        this.timer.start();
-        // Whether `stepThreads` has run through a full single tick.
+        // Whether `round` has run through a full single tick.
         let firstRound = true;
         const doneThreads = [];
-        while (!this.isPaused() && this.threads.length > 0 && this.timer.timeElapsed() < WORK_TIME && (this.turboMode || !this.redrawRequested)) {
+        while (!this.isPaused() && this.threads.length > 0 && (this.turboMode || !this.redrawRequested)) {
             this.sequencer.round(this.threads, firstRound);
             // We successfully done one round. Prevents running STATUS_YIELD_TICK threads on the next round.
             firstRound = false;
@@ -2271,6 +2244,10 @@ class Runtime extends EventEmitter {
             this.profiler.stop();
             this.profiler.reportFrames();
         }
+
+        this._steppingTimeout = setTimeout(() => {
+            this._step();
+        });
     }
 
     /**
@@ -2317,10 +2294,11 @@ class Runtime extends EventEmitter {
      * @param {boolean} compatibilityModeOn True iff in compatibility mode.
      */
     setCompatibilityMode (compatibilityModeOn) {
+        // TODO: remove
         this.compatibilityMode = compatibilityModeOn;
-        if (this._steppingInterval) {
-            clearInterval(this._steppingInterval);
-            this._steppingInterval = null;
+        if (this._steppingTimeout) {
+            clearTimeout(this._steppingTimeout);
+            this._steppingTimeout = null;
             this.start();
         }
     }
@@ -2824,17 +2802,11 @@ class Runtime extends EventEmitter {
      */
     start () {
         // Do not start if we are already running
-        if (this._steppingInterval) return;
-
-        let interval = Runtime.THREAD_STEP_INTERVAL;
-        if (this.compatibilityMode) {
-            interval = Runtime.THREAD_STEP_INTERVAL_COMPATIBILITY;
-        }
-        this.currentStepTime = interval;
-        console.info(`scratch: stepping at ${Math.round(1000 / this.currentStepTime)} fps`);
-        this._steppingInterval = setInterval(() => {
+        if (this._steppingTimeout) return;
+        console.info("scratch: stepping as fast as possible");
+        this._steppingTimeout = setTimeout(() => {
             this._step();
-        }, interval);
+        });
         this.emit(Runtime.RUNTIME_STARTED);
     }
 
@@ -2843,8 +2815,8 @@ class Runtime extends EventEmitter {
      * Do not use the runtime after calling this method. This method is meant for test shutdown.
      */
     quit () {
-        clearInterval(this._steppingInterval);
-        this._steppingInterval = null;
+        clearTimeout(this._steppingTimeout);
+        this._steppingTimeout = null;
     }
 
     /**
