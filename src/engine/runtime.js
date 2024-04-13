@@ -2831,6 +2831,7 @@ class Runtime extends EventEmitter {
             interval = Runtime.THREAD_STEP_INTERVAL_COMPATIBILITY;
         }
         this.currentStepTime = interval;
+        console.info(`scratch: stepping at ${Math.round(1000 / this.currentStepTime)} fps`);
         this._steppingInterval = setInterval(() => {
             this._step();
         }, interval);
