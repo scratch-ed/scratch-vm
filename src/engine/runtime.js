@@ -19,6 +19,7 @@ const Variable = require('./variable');
 const xmlEscape = require('../util/xml-escape');
 const ScratchLinkWebSocket = require('../util/scratch-link-websocket');
 const fetchWithTimeout = require('../util/fetch-with-timeout');
+const Timer = require('../util/timer');
 
 // Virtual I/O devices.
 const Clock = require('../io/clock');
@@ -155,22 +156,16 @@ const cloudDataManager = () => {
 };
 
 /**
- * Numeric ID for Runtime._step in Profiler instances.
+ * Numeric ID for frame in Profiler instances.
  * @type {number}
  */
-let stepProfilerId = -1;
+let frameProfilerId = -1;
 
 /**
- * Numeric ID for Sequencer.stepThreads in Profiler instances.
+ * Numeric ID for redraw in Profiler instances.
  * @type {number}
  */
-let stepThreadsProfilerId = -1;
-
-/**
- * Numeric ID for RenderWebGL.draw in Profiler instances.
- * @type {number}
- */
-let rendererDrawProfilerId = -1;
+let redrawProfilerId = -1;
 
 /**
  * Manages targets, scripts, and the sequencer.
@@ -201,6 +196,7 @@ class Runtime extends EventEmitter {
 
         /** @type {!Sequencer} */
         this.sequencer = new Sequencer(this);
+        this.timer = new Timer();
 
         /**
          * Storage container for flyout blocks.
@@ -1967,6 +1963,13 @@ class Runtime extends EventEmitter {
         // threads are stepped. See ScratchRuntime.as for original implementation
         newThreads.forEach(thread => {
             execute(this.sequencer, thread);
+        });
+
+        if (newThreads.length && requestedHatOpcode !== 'control_start_as_clone') {
+            this.emit('THREADS_EXECUTED');
+        }
+
+        newThreads.forEach(thread => {
             thread.goToNextBlock();
         });
 
@@ -2172,21 +2175,16 @@ class Runtime extends EventEmitter {
         this._updateBlockIndications();
     }
 
-    /**
-     * Repeatedly run `sequencer.stepThreads` and filter out
-     * inactive threads after each iteration.
-     */
+
     _step () {
         if (this.profiler !== null) {
-            if (stepProfilerId === -1) {
-                stepProfilerId = this.profiler.idByName('Runtime._step');
+            if (frameProfilerId === -1) {
+                frameProfilerId = this.profiler.idByName('frame');
             }
-            this.profiler.start(stepProfilerId);
+            this.profiler.start(frameProfilerId);
         }
-
-        // Clean up threads that were told to stop during or since the last step
+        // Clean up threads that were told to stop during or since the last frame
         this.threads = this.threads.filter(thread => !thread.isKilled);
-
         // Find all edge-activated hats, and add them to threads to be evaluated.
         for (const hatType in this._hats) {
             if (!this._hats.hasOwnProperty(hatType)) continue;
@@ -2197,21 +2195,44 @@ class Runtime extends EventEmitter {
         }
         this.redrawRequested = false;
         this._pushMonitors();
-        if (this.profiler !== null) {
-            if (stepThreadsProfilerId === -1) {
-                stepThreadsProfilerId = this.profiler.idByName('Sequencer.stepThreads');
+
+        // Work time is 75% of the thread stepping interval.
+        const WORK_TIME = 0.75 * this.currentStepTime;
+        // For compatibility with Scatch 2, update the millisecond clock
+        // on the Runtime once per step (see Interpreter.as in Scratch 2
+        // for original use of `currentMSecs`)
+        this.updateCurrentMSecs();
+        // Start counting toward WORK_TIME.
+        this.timer.start();
+        // Whether `stepThreads` has run through a full single tick.
+        let firstRound = true;
+        const doneThreads = [];
+        while (!this.isPaused() && this.threads.length > 0 && this.timer.timeElapsed() < WORK_TIME && (this.turboMode || !this.redrawRequested)) {
+            this.sequencer.round(this.threads, firstRound);
+            // We successfully done one round. Prevents running STATUS_YIELD_TICK threads on the next round.
+            firstRound = false;
+            // Remove threads that are done
+            let nextActiveThread = 0;
+            for (let i = 0; i < this.threads.length; i++) {
+                const thread = this.threads[i];
+                if (thread.stack.length !== 0 && thread.status !== Thread.STATUS_DONE) {
+                    this.threads[nextActiveThread] = thread;
+                    nextActiveThread++;
+                } else {
+                    doneThreads.push(thread);
+                }
             }
-            this.profiler.start(stepThreadsProfilerId);
+            this.threads.length = nextActiveThread;
         }
 
-        // If the runtime is completely paused, don't step any threads.
-        const doneThreads = this.isPaused() ? [] : this.sequencer.stepThreads();
-
-        if (this.profiler !== null) {
-            this.profiler.stop();
+        // If the sequencer was only resumed for one step, pause again after this step.
+        if (this.inStep()) {
+            this.isStepPaused = true;
         }
+
         this._updateGlows(doneThreads);
         this._updateBlockIndications(doneThreads);
+
         // Add done threads so that even if a thread finishes within 1 frame, the green
         // flag will still indicate that a script ran.
         this._emitProjectRunStatus(
@@ -2221,13 +2242,14 @@ class Runtime extends EventEmitter {
         // Store threads that completed this iteration for testing and other
         // internal purposes.
         this._lastStepDoneThreads = doneThreads;
-        if (this.renderer) {
-            // @todo: Only render when this.redrawRequested or clones rendered.
+
+        // @todo: does not redraw if new project loaded if redrawrequested is added to condition
+        if (this.renderer) { // && this.redrawRequested) {
             if (this.profiler !== null) {
-                if (rendererDrawProfilerId === -1) {
-                    rendererDrawProfilerId = this.profiler.idByName('RenderWebGL.draw');
+                if (redrawProfilerId === -1) {
+                    redrawProfilerId = this.profiler.idByName('redraw');
                 }
-                this.profiler.start(rendererDrawProfilerId);
+                this.profiler.start(redrawProfilerId);
             }
             this.renderer.draw();
             if (this.profiler !== null) {

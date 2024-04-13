@@ -84,11 +84,13 @@ class Timer {
      * at the most accurate precision possible.
      */
     start () {
-        this.startTime = this.nowObj.now();
+        this.startTime = self.performance.now();
+        // this.startTime = this.nowObj.now();
     }
 
     timeElapsed () {
-        return this.nowObj.now() - this.startTime;
+        return self.performance.now() - this.startTime;
+        // return this.nowObj.now() - this.startTime;
     }
 
     /**
