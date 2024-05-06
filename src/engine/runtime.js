@@ -2179,9 +2179,13 @@ class Runtime extends EventEmitter {
         this.updateCurrentMSecs();
         // Whether `round` has run through a full single tick.
         let firstRound = true;
+        let executedThreads;
         const doneThreads = [];
         while (!this.isPaused() && this.threads.length > 0 && (this.turboMode || !this.redrawRequested)) {
-            this.sequencer.round(this.threads, firstRound);
+            executedThreads = this.sequencer.round(this.threads, firstRound);
+            if (!executedThreads) {
+                break;
+            }
             // We successfully done one round. Prevents running STATUS_YIELD_TICK threads on the next round.
             firstRound = false;
             // Remove threads that are done

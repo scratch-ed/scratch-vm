@@ -108,6 +108,7 @@ class Sequencer {
         }
         // Reset active thread
         this.activeThread = null;
+        return executedThread;
     }
 
     isFinished (thread) {
