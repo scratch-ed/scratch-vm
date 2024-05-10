@@ -202,7 +202,7 @@ class Sequencer {
 
     warpTurn (thread) {
         let pauseRequested = this.runtime.pauseRequested;
-        while (thread.peekStackFrame().warpMode && !this.isFinished(thread) && !pauseRequested && thread.warpTimer.timeElapsed() < Sequencer.WARP_TIME) {
+        while (!this.isFinished(thread) && thread.peekStackFrame().warpMode && !pauseRequested && thread.warpTimer.timeElapsed() < Sequencer.WARP_TIME) {
             this.turn(thread, true);
             pauseRequested = this.runtime.pauseRequested;
         }
