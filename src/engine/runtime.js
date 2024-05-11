@@ -2190,11 +2190,9 @@ class Runtime extends EventEmitter {
         let executedThreads;
         let doneRounds = 0;
         const doneThreads = [];
-        while (!this.isPaused() && this.threads.length > 0 && (this.turboMode || !this.redrawRequested) && doneRounds < this.MAX_ROUNDS_IN_FRAME) {
+        while (!this.isPaused() && this.threads.length > 0 && (this.turboMode || !this.redrawRequested) && doneRounds < Runtime.MAX_ROUNDS_IN_FRAME) {
             executedThreads = this.sequencer.round(this.threads, firstRound);
-            if (!executedThreads) {
-                break;
-            }
+            doneRounds++;
             // We successfully done one round. Prevents running STATUS_YIELD_TICK threads on the next round.
             firstRound = false;
             // Remove threads that are done
@@ -2209,7 +2207,9 @@ class Runtime extends EventEmitter {
                 }
             }
             this.threads.length = nextActiveThread;
-            doneRounds++;
+            if (!executedThreads) {
+                break;
+            }
         }
 
         // If the sequencer was only resumed for one step, pause again after this step.
