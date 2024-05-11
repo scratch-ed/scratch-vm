@@ -770,6 +770,14 @@ class Runtime extends EventEmitter {
         return 300;
     }
 
+    /**
+     * How many rounds there can be in a frame.
+     * @const {number}
+     */
+    static get MAX_ROUNDS_IN_FRAME () {
+        return 50;
+    }
+
     // -----------------------------------------------------------------------------
     // -----------------------------------------------------------------------------
 
@@ -2180,8 +2188,9 @@ class Runtime extends EventEmitter {
         // Whether `round` has run through a full single tick.
         let firstRound = true;
         let executedThreads;
+        let doneRounds = 0;
         const doneThreads = [];
-        while (!this.isPaused() && this.threads.length > 0 && (this.turboMode || !this.redrawRequested)) {
+        while (!this.isPaused() && this.threads.length > 0 && (this.turboMode || !this.redrawRequested) && doneRounds < this.MAX_ROUNDS_IN_FRAME) {
             executedThreads = this.sequencer.round(this.threads, firstRound);
             if (!executedThreads) {
                 break;
@@ -2200,6 +2209,7 @@ class Runtime extends EventEmitter {
                 }
             }
             this.threads.length = nextActiveThread;
+            doneRounds++;
         }
 
         // If the sequencer was only resumed for one step, pause again after this step.
