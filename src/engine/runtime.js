@@ -19,6 +19,7 @@ const Variable = require('./variable');
 const xmlEscape = require('../util/xml-escape');
 const ScratchLinkWebSocket = require('../util/scratch-link-websocket');
 const fetchWithTimeout = require('../util/fetch-with-timeout');
+const {TestProcessor} = require('./test-processor');
 
 // Virtual I/O devices.
 const Clock = require('../io/clock');
@@ -421,6 +422,10 @@ class Runtime extends EventEmitter {
 
         this.pauseRequested = false;
         // DEBUGGER VARIABLES
+
+        // TEST VARIABLES
+        this.testProcessor = new TestProcessor();
+        // TEST VARIABLES
     }
 
     // DEBUGGER METHODS

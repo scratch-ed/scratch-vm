@@ -197,6 +197,17 @@ class VirtualMachine extends EventEmitter {
         this.runtime.greenFlag();
     }
 
+    testFlag () {
+    }
+
+    getTestResults () {
+        return this.runtime.testProcessor.results();
+    }
+
+    processTestFeedback (message) {
+        this.runtime.testProcessor.process(message);
+    }
+
     /**
      * Set whether the VM is in "turbo mode."
      * When true, loops don't yield to redraw.
