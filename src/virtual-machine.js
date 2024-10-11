@@ -197,9 +197,6 @@ class VirtualMachine extends EventEmitter {
         this.runtime.greenFlag();
     }
 
-    testFlag () {
-    }
-
     getTestResults () {
         return this.runtime.testProcessor.results();
     }
@@ -512,13 +509,22 @@ class VirtualMachine extends EventEmitter {
             const testConfigFile = zip.file('test_config.json');
             const testPlanFile = zip.file('testplan.js');
             const testTemplateFile = zip.file('test_template.sb3');
-            if (testConfigFile && testPlanFile && testTemplateFile) {
-                testConfigFile.async('string').then(data =>
-                    (this.testConfig = data)
-                );
-                testPlanFile.async('string').then(data =>
-                    (this.testPlan = data)
-                );
+            if (testPlanFile && testTemplateFile) {
+                if (testConfigFile) {
+                    testConfigFile.async('string').then(data =>
+                        (this.testConfig = data)
+                    );
+                } else {
+                    this.testConfig = {};
+                }
+                testPlanFile.async('string').then(data => {
+                    const script = document.createElement('script');
+                    script.className = 'test-script';
+                    script.type = 'text/javascript';
+                    script.async = false;
+                    script.innerHTML = data;
+                    document.head.appendChild(script);
+                });
                 testTemplateFile.async('arrayBuffer').then(data => {
                     const validate = require('scratch-parser');
                     validate(data, false, (error, res) => {
