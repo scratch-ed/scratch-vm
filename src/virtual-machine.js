@@ -507,6 +507,30 @@ class VirtualMachine extends EventEmitter {
         // Clear the current runtime
         this.clear();
 
+        // Load test template, config and plan
+        if (zip) { // Zip will not be provided if loading project json from server
+            const testConfigFile = zip.file('test_config.json');
+            const testPlanFile = zip.file('testplan.js');
+            const testTemplateFile = zip.file('test_template.sb3');
+            if (testConfigFile && testPlanFile && testTemplateFile) {
+                testConfigFile.async('string').then(data =>
+                    (this.testConfig = data)
+                );
+                testPlanFile.async('string').then(data =>
+                    (this.testPlan = data)
+                );
+                testTemplateFile.async('arrayBuffer').then(data => {
+                    const validate = require('scratch-parser');
+                    validate(data, false, (error, res) => {
+                        if (error) {
+                            return Promise.reject('Unable to validate test template');
+                        }
+                        this.testTemplate = res[0];
+                    });
+                });
+            }
+        }
+
         if (typeof performance !== 'undefined') {
             performance.mark('scratch-vm-deserialize-start');
         }
