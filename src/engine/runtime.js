@@ -470,6 +470,19 @@ class Runtime extends EventEmitter {
     }
     // DEBUGGER METHODS
 
+    // TESTER METHODS
+    enableTestMode () {
+        this.testMode = true;
+        this.emit('TEST_MODE_ENABLED');
+    }
+
+    disableTestMode () {
+        this.testMode = false;
+        this.emit('TEST_MODE_DISABLED');
+        this.resume();
+    }
+    // TESTER METHODS
+
     /**
      * Width of the stage, in pixels.
      * @const {number}
