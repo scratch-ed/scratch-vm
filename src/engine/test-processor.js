@@ -65,10 +65,10 @@ class TestProcessor {
         if (command === 'start-group') {
             let group;
             if (this.currentGroup === null) {
-                group = new TestGroup(null, message.name, message.visibility);
+                group = new TestGroup(null, message.name, message.visibility === 'show');
                 this.groups.push(group);
             } else {
-                group = this.currentGroup.addGroup(message.name, message.visibility);
+                group = this.currentGroup.addGroup(message.name, message.visibility === 'show');
             }
             this.currentGroup = group;
         }
