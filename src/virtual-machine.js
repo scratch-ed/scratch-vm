@@ -201,6 +201,10 @@ class VirtualMachine extends EventEmitter {
         return this.runtime.testProcessor.results();
     }
 
+    clearTestResults () {
+        this.runtime.testProcessor.clear();
+    }
+
     processTestFeedback (message) {
         this.runtime.testProcessor.process(message);
     }
@@ -517,14 +521,6 @@ class VirtualMachine extends EventEmitter {
                 } else {
                     this.testConfig = {};
                 }
-                testPlanFile.async('string').then(data => {
-                    const script = document.createElement('script');
-                    script.className = 'test-script';
-                    script.type = 'text/javascript';
-                    script.async = false;
-                    script.innerHTML = data;
-                    document.head.appendChild(script);
-                });
                 testTemplateFile.async('arrayBuffer').then(data => {
                     const validate = require('scratch-parser');
                     validate(data, false, (error, res) => {
@@ -533,6 +529,22 @@ class VirtualMachine extends EventEmitter {
                         }
                         this.testTemplate = res[0];
                     });
+                });
+                // Clear previous loaded tests
+                if (document.head.lastChild.className === 'test-script') {
+                    document.head.removeChild(document.head.lastChild);
+                }
+                window.beforeExecution = function () {};
+                window.duringExecution = function () {};
+                window.afterExecution = function () {};
+                // Load new tests
+                testPlanFile.async('string').then(data => {
+                    const script = document.createElement('script');
+                    script.className = 'test-script';
+                    script.type = 'text/javascript';
+                    script.async = false;
+                    script.innerHTML = data;
+                    document.head.appendChild(script);
                 });
             }
         }

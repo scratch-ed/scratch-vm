@@ -90,6 +90,10 @@ class TestProcessor {
     results () {
         return this.groups;
     }
+
+    clear () {
+        this.groups = [];
+    }
 }
 
 module.exports = {TestProcessor, TestGroup};
