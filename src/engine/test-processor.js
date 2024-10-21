@@ -43,7 +43,8 @@ class TestGroup {
 }
 
 class TestProcessor {
-    constructor () {
+    constructor (onTestFinished) {
+        this.onTestFinished = onTestFinished;
         this.groups = [];
         /** @type {TestGroup} */
         this.currentGroup = null;
@@ -60,6 +61,7 @@ class TestProcessor {
 
         if (command === 'close-judgement') {
             this.duration = new Date() - this.start;
+            this.onTestFinished();
         }
 
         if (command === 'start-group') {
