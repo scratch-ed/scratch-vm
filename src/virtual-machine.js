@@ -205,6 +205,10 @@ class VirtualMachine extends EventEmitter {
         this.runtime.testProcessor.clear();
     }
 
+    getMarkedTests () {
+        return this.runtime.testProcessor.markers();
+    }
+
     processTestFeedback (message) {
         this.runtime.testProcessor.process(message);
     }

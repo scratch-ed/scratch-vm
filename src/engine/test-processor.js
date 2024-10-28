@@ -26,12 +26,14 @@ class TestGroup {
         this.currentTestName = name;
     }
 
-    closeTest (status, feedback) {
+    closeTest (status, feedback, marker) {
         const passed = status === 'correct';
-        this.children.push({name: this.currentTestName, passed, feedback, id: v4()});
+        const test = {name: this.currentTestName, passed, feedback, marker, id: v4()};
+        this.children.push(test);
         if (!passed) {
             this.groupFailed();
         }
+        return test;
     }
 
     groupFailed () {
@@ -45,6 +47,7 @@ class TestGroup {
 class TestProcessor {
     constructor (onTestFinished) {
         this.onTestFinished = onTestFinished;
+        this.markedTests = [];
         this.groups = [];
         /** @type {TestGroup} */
         this.currentGroup = null;
@@ -85,12 +88,19 @@ class TestProcessor {
         }
 
         if (command === 'close-test') {
-            this.currentGroup.closeTest(message.status, message.feedback);
+            const test = this.currentGroup.closeTest(message.status, message.feedback, message.marker);
+            if (message.marker) {
+                this.markedTests.push(test);
+            }
         }
     }
 
     results () {
         return this.groups;
+    }
+
+    markers () {
+        return this.markedTests;
     }
 
     clear () {
