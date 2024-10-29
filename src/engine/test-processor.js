@@ -105,6 +105,7 @@ class TestProcessor {
 
     clear () {
         this.groups = [];
+        this.markedTests = [];
     }
 }
 
