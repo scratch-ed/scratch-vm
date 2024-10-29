@@ -89,7 +89,7 @@ class TestProcessor {
 
         if (command === 'close-test') {
             const test = this.currentGroup.closeTest(message.status, message.feedback, message.marker);
-            if (message.marker) {
+            if (typeof message.marker !== 'undefined') {
                 this.markedTests.push(test);
             }
         }
