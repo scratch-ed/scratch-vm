@@ -425,7 +425,8 @@ class Runtime extends EventEmitter {
         // DEBUGGER VARIABLES
 
         // TEST VARIABLES
-        this.testProcessor = new TestProcessor();
+        this.testsRunning = false;
+        this.testProcessor = new TestProcessor(() => this.stopTesting());
         // TEST VARIABLES
     }
 
@@ -433,6 +434,7 @@ class Runtime extends EventEmitter {
     enableDebugMode () {
         this.debugMode = true;
         this.emit('DEBUG_MODE_ENABLED');
+        this.resume();
     }
 
     disableDebugMode () {
@@ -472,15 +474,18 @@ class Runtime extends EventEmitter {
     // DEBUGGER METHODS
 
     // TESTER METHODS
-    enableTestMode () {
-        this.testMode = true;
-        this.emit('TEST_MODE_ENABLED');
+    startTesting () {
+        this.testsRunning = true;
+        this.emit('TESTING_STARTED');
+        this.resume();
     }
 
-    disableTestMode () {
-        this.testMode = false;
-        this.emit('TEST_MODE_DISABLED');
-        this.resume();
+    stopTesting () {
+        if (this.testsRunning) {
+            this.testsRunning = false;
+            this.emit('TESTING_STOPPED');
+            this.pause();
+        }
     }
     // TESTER METHODS
 
