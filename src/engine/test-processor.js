@@ -28,7 +28,7 @@ class TestGroup {
 
     closeTest (status, feedback, marker) {
         const passed = status === 'correct';
-        const test = {name: this.currentTestName, passed, feedback, marker, id: v4(), parent: this.id};
+        const test = {name: this.currentTestName, passed, feedback, marker, id: v4(), parent: this.id, parentName: this.name};
         this.children.push(test);
         if (!passed) {
             this.groupFailed();
