@@ -425,6 +425,7 @@ class Runtime extends EventEmitter {
         // DEBUGGER VARIABLES
 
         // TEST VARIABLES
+        this.testMode = false;
         this.testsRunning = false;
         this.testProcessor = new TestProcessor(() => this.stopTesting());
         // TEST VARIABLES
@@ -477,6 +478,7 @@ class Runtime extends EventEmitter {
     startTesting () {
         this.testController = new AbortController();
         this.testsRunning = true;
+        this.testMode = true;
         this.emit('TESTING_STARTED');
         this.resume();
     }
@@ -486,8 +488,17 @@ class Runtime extends EventEmitter {
             this.testController.abort();
             this.testsRunning = false;
             this.emit('TESTING_STOPPED');
-            this.pause();
+            if (this.testmode) {
+                this.pause();
+            }
         }
+    }
+
+    disableTestMode () {
+        this.testMode = false;
+        this.stopTesting();
+        this.emit('TEST_MODE_DISABLED');
+        this.resume();
     }
 
     getTestSignal () {
@@ -2392,7 +2403,7 @@ class Runtime extends EventEmitter {
     _updateBlockIndications (optExtraThreads) {
         const searchThreads = [];
 
-        if (this.debugMode) {
+        if (this.debugMode || this.testMode) {
             searchThreads.push.apply(searchThreads, this.threads);
             if (optExtraThreads) {
                 searchThreads.push.apply(searchThreads, optExtraThreads);
