@@ -146,6 +146,9 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.PERIPHERAL_SCAN_TIMEOUT, () =>
             this.emit(Runtime.PERIPHERAL_SCAN_TIMEOUT)
         );
+        this.runtime.on(Runtime.PROJECT_LOADED, () =>
+            this.emit(Runtime.PROJECT_LOADED)
+        );
         this.runtime.on(Runtime.MIC_LISTENING, listening => {
             this.emit(Runtime.MIC_LISTENING, listening);
         });
@@ -532,6 +535,7 @@ class VirtualMachine extends EventEmitter {
                             return Promise.reject('Unable to validate test template');
                         }
                         this.testTemplate = res[0];
+                        this.emit('TESTS_LOADED');
                     });
                 });
                 // Clear previous loaded tests
