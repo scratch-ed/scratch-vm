@@ -488,7 +488,7 @@ class Runtime extends EventEmitter {
             this.testController.abort();
             this.testsRunning = false;
             this.emit('TESTING_STOPPED');
-            if (this.testmode) {
+            if (this.testMode) {
                 this.pause();
             }
         }
