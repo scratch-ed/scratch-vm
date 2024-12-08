@@ -542,9 +542,9 @@ class VirtualMachine extends EventEmitter {
                 if (document.head.lastChild.className === 'test-script') {
                     document.head.removeChild(document.head.lastChild);
                 }
-                window.beforeExecution = function () {};
-                window.duringExecution = function () {};
-                window.afterExecution = function () {};
+                window.beforeExecution = null;
+                window.duringExecution = null;
+                window.afterExecution = null;
                 // Load new tests
                 testPlanFile.async('string').then(data => {
                     const script = document.createElement('script');
