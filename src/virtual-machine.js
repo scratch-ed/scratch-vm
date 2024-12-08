@@ -523,7 +523,7 @@ class VirtualMachine extends EventEmitter {
             if (testPlanFile && testTemplateFile) {
                 if (testConfigFile) {
                     testConfigFile.async('string').then(data =>
-                        (this.testConfig = data)
+                        (this.testConfig = JSON.parse(data))
                     );
                 } else {
                     this.testConfig = {};
