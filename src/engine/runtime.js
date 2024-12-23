@@ -2012,7 +2012,7 @@ class Runtime extends EventEmitter {
         });
 
         if (newThreads.length && requestedHatOpcode !== 'control_start_as_clone') {
-            this.emit('THREADS_EXECUTED');
+            this.emit('THREADS_EXECUTED', requestedHatOpcode, newThreads.map(thread => thread.target.sprite.name));
         }
         return newThreads;
     }
