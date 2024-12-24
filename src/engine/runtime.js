@@ -1999,11 +1999,6 @@ class Runtime extends EventEmitter {
             newThreads.push(this._pushThread(topBlockId, target));
         }, optTarget);
 
-        // Emit event when we go from no active threads to 1 or more active threads.
-        if (this._nonMonitorThreadCount === 0 && newThreads.length > 0) {
-            this.emit('THREADS_STARTED');
-        }
-
         // For compatibility with Scratch 2, edge triggered hats need to be processed before
         // threads are stepped. See ScratchRuntime.as for original implementation
         newThreads.forEach(thread => {
@@ -2011,9 +2006,6 @@ class Runtime extends EventEmitter {
             thread.goToNextBlock();
         });
 
-        if (newThreads.length && requestedHatOpcode !== 'control_start_as_clone') {
-            this.emit('THREADS_EXECUTED', requestedHatOpcode, newThreads.map(thread => thread.target.sprite.name));
-        }
         return newThreads;
     }
 
