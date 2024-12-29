@@ -176,6 +176,8 @@ class VirtualMachine extends EventEmitter {
         this.flyoutBlockListener = this.flyoutBlockListener.bind(this);
         this.monitorBlockListener = this.monitorBlockListener.bind(this);
         this.variableListener = this.variableListener.bind(this);
+
+        this.testConfig = null;
     }
 
     /**
@@ -332,6 +334,16 @@ class VirtualMachine extends EventEmitter {
      * @return {!Promise} Promise that resolves after targets are installed.
      */
     loadProject (input) {
+        // Clear previous loaded tests
+        this.testConfig = null;
+        this.testTemplate = null;
+        if (document.head.lastChild.className === 'test-script') {
+            document.head.removeChild(document.head.lastChild);
+        }
+        window.beforeExecution = null;
+        window.duringExecution = null;
+        window.afterExecution = null;
+
         if (typeof input === 'object' && !(input instanceof ArrayBuffer) &&
           !ArrayBuffer.isView(input)) {
             // If the input is an object and not any ArrayBuffer
@@ -520,6 +532,8 @@ class VirtualMachine extends EventEmitter {
             const testConfigFile = zip.file('test_config.json');
             const testPlanFile = zip.file('testplan.js');
             const testTemplateFile = zip.file('test_template.sb3');
+
+            // Load new tests
             if (testPlanFile && testTemplateFile) {
                 if (testConfigFile) {
                     testConfigFile.async('string').then(data =>
@@ -538,14 +552,6 @@ class VirtualMachine extends EventEmitter {
                         this.emit('TESTS_LOADED');
                     });
                 });
-                // Clear previous loaded tests
-                if (document.head.lastChild.className === 'test-script') {
-                    document.head.removeChild(document.head.lastChild);
-                }
-                window.beforeExecution = null;
-                window.duringExecution = null;
-                window.afterExecution = null;
-                // Load new tests
                 testPlanFile.async('string').then(data => {
                     const script = document.createElement('script');
                     script.className = 'test-script';
