@@ -19,6 +19,7 @@ const Variable = require('./variable');
 const xmlEscape = require('../util/xml-escape');
 const ScratchLinkWebSocket = require('../util/scratch-link-websocket');
 const fetchWithTimeout = require('../util/fetch-with-timeout');
+const {TestProcessor} = require('./test-processor');
 
 // Virtual I/O devices.
 const Clock = require('../io/clock');
@@ -422,12 +423,19 @@ class Runtime extends EventEmitter {
 
         this.pauseRequested = false;
         // DEBUGGER VARIABLES
+
+        // TEST VARIABLES
+        this.testMode = false;
+        this.testsRunning = false;
+        this.testProcessor = new TestProcessor(() => this.stopTesting());
+        // TEST VARIABLES
     }
 
     // DEBUGGER METHODS
     enableDebugMode () {
         this.debugMode = true;
         this.emit('DEBUG_MODE_ENABLED');
+        this.resume();
     }
 
     disableDebugMode () {
@@ -465,6 +473,38 @@ class Runtime extends EventEmitter {
         this.pauseRequested = true;
     }
     // DEBUGGER METHODS
+
+    // TESTER METHODS
+    startTesting () {
+        this.testController = new AbortController();
+        this.testsRunning = true;
+        this.testMode = true;
+        this.emit('TESTING_STARTED');
+        this.resume();
+    }
+
+    stopTesting () {
+        if (this.testsRunning) {
+            this.testController.abort();
+            this.testsRunning = false;
+            this.emit('TESTING_STOPPED');
+            if (this.testMode) {
+                this.pause();
+            }
+        }
+    }
+
+    disableTestMode () {
+        this.testMode = false;
+        this.stopTesting();
+        this.emit('TEST_MODE_DISABLED');
+        this.resume();
+    }
+
+    getTestSignal () {
+        return this.testController.signal;
+    }
+    // TESTER METHODS
 
     /**
      * Width of the stage, in pixels.
@@ -1959,11 +1999,6 @@ class Runtime extends EventEmitter {
             newThreads.push(this._pushThread(topBlockId, target));
         }, optTarget);
 
-        // Emit event when we go from no active threads to 1 or more active threads.
-        if (this._nonMonitorThreadCount === 0 && newThreads.length > 0) {
-            this.emit('THREADS_STARTED');
-        }
-
         // For compatibility with Scratch 2, edge triggered hats need to be processed before
         // threads are stepped. See ScratchRuntime.as for original implementation
         newThreads.forEach(thread => {
@@ -1971,9 +2006,6 @@ class Runtime extends EventEmitter {
             thread.goToNextBlock();
         });
 
-        if (newThreads.length && requestedHatOpcode !== 'control_start_as_clone') {
-            this.emit('THREADS_EXECUTED');
-        }
         return newThreads;
     }
 
@@ -2363,7 +2395,7 @@ class Runtime extends EventEmitter {
     _updateBlockIndications (optExtraThreads) {
         const searchThreads = [];
 
-        if (this.debugMode) {
+        if (this.debugMode || this.testMode) {
             searchThreads.push.apply(searchThreads, this.threads);
             if (optExtraThreads) {
                 searchThreads.push.apply(searchThreads, optExtraThreads);

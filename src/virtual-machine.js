@@ -146,6 +146,9 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.PERIPHERAL_SCAN_TIMEOUT, () =>
             this.emit(Runtime.PERIPHERAL_SCAN_TIMEOUT)
         );
+        this.runtime.on(Runtime.PROJECT_LOADED, () =>
+            this.emit(Runtime.PROJECT_LOADED)
+        );
         this.runtime.on(Runtime.MIC_LISTENING, listening => {
             this.emit(Runtime.MIC_LISTENING, listening);
         });
@@ -173,6 +176,8 @@ class VirtualMachine extends EventEmitter {
         this.flyoutBlockListener = this.flyoutBlockListener.bind(this);
         this.monitorBlockListener = this.monitorBlockListener.bind(this);
         this.variableListener = this.variableListener.bind(this);
+
+        this.testConfig = null;
     }
 
     /**
@@ -195,6 +200,22 @@ class VirtualMachine extends EventEmitter {
      */
     greenFlag () {
         this.runtime.greenFlag();
+    }
+
+    getTestResults () {
+        return this.runtime.testProcessor.results();
+    }
+
+    clearTestResults () {
+        this.runtime.testProcessor.clear();
+    }
+
+    getMarkedTests () {
+        return this.runtime.testProcessor.markers();
+    }
+
+    processTestFeedback (message) {
+        this.runtime.testProcessor.process(message);
     }
 
     /**
@@ -313,6 +334,16 @@ class VirtualMachine extends EventEmitter {
      * @return {!Promise} Promise that resolves after targets are installed.
      */
     loadProject (input) {
+        // Clear previous loaded tests
+        this.testConfig = null;
+        this.testTemplate = null;
+        if (document.head.lastChild.className === 'test-script') {
+            document.head.removeChild(document.head.lastChild);
+        }
+        window.beforeExecution = null;
+        window.duringExecution = null;
+        window.afterExecution = null;
+
         if (typeof input === 'object' && !(input instanceof ArrayBuffer) &&
           !ArrayBuffer.isView(input)) {
             // If the input is an object and not any ArrayBuffer
@@ -495,6 +526,42 @@ class VirtualMachine extends EventEmitter {
     deserializeProject (projectJSON, zip) {
         // Clear the current runtime
         this.clear();
+
+        // Load test template, config and plan
+        if (zip) { // Zip will not be provided if loading project json from server
+            const testConfigFile = zip.file('test_config.json');
+            const testPlanFile = zip.file('testplan.js');
+            const testTemplateFile = zip.file('test_template.sb3');
+
+            // Load new tests
+            if (testPlanFile && testTemplateFile) {
+                if (testConfigFile) {
+                    testConfigFile.async('string').then(data =>
+                        (this.testConfig = JSON.parse(data))
+                    );
+                } else {
+                    this.testConfig = {};
+                }
+                testTemplateFile.async('arrayBuffer').then(data => {
+                    const validate = require('scratch-parser');
+                    validate(data, false, (error, res) => {
+                        if (error) {
+                            return Promise.reject('Unable to validate test template');
+                        }
+                        this.testTemplate = res[0];
+                        this.emit('TESTS_LOADED');
+                    });
+                });
+                testPlanFile.async('string').then(data => {
+                    const script = document.createElement('script');
+                    script.className = 'test-script';
+                    script.type = 'text/javascript';
+                    script.async = false;
+                    script.innerHTML = data;
+                    document.head.appendChild(script);
+                });
+            }
+        }
 
         if (typeof performance !== 'undefined') {
             performance.mark('scratch-vm-deserialize-start');
