@@ -476,6 +476,10 @@ class Runtime extends EventEmitter {
 
     // TESTER METHODS
     startTesting () {
+        for (const target of this.targets) {
+            target.blocks.resetCache();
+        }
+
         this.testController = new AbortController();
         this.testsRunning = true;
         this.testMode = true;
