@@ -433,6 +433,8 @@ class Runtime extends EventEmitter {
 
     // DEBUGGER METHODS
     enableDebugMode () {
+        this.clearCacheTargets();
+
         this.debugMode = true;
         this.emit('DEBUG_MODE_ENABLED');
         this.resume();
@@ -476,9 +478,7 @@ class Runtime extends EventEmitter {
 
     // TESTER METHODS
     startTesting () {
-        for (const target of this.targets) {
-            target.blocks.resetCache();
-        }
+        this.clearCacheTargets();
 
         this.testController = new AbortController();
         this.testsRunning = true;
@@ -509,6 +509,12 @@ class Runtime extends EventEmitter {
         return this.testController.signal;
     }
     // TESTER METHODS
+
+    clearCacheTargets () {
+        for (const target of this.targets) {
+            target.blocks.resetCache();
+        }
+    }
 
     /**
      * Width of the stage, in pixels.
