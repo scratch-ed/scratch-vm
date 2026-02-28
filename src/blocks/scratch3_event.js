@@ -83,8 +83,13 @@ class Scratch3EventBlocks {
             args.BROADCAST_OPTION.id, args.BROADCAST_OPTION.name);
         if (broadcastVar) {
             const broadcastOption = broadcastVar.name;
+            const sourceSpriteName = util.target.sprite?.name;
+            const threadId = util.thread.topBlock;
             util.startHats('event_whenbroadcastreceived', {
                 BROADCAST_OPTION: broadcastOption
+            }, null, {
+                source: sourceSpriteName,
+                thread: threadId
             });
         }
     }
@@ -99,11 +104,14 @@ class Scratch3EventBlocks {
             // Have we run before, starting threads?
             if (!util.stackFrame.startedThreads) {
                 // No - start hats for this broadcast.
-                util.stackFrame.startedThreads = util.startHats(
-                    'event_whenbroadcastreceived', {
-                        BROADCAST_OPTION: broadcastOption
-                    }
-                );
+                const sourceSpriteName = util.target.sprite?.name;
+                const threadId = util.thread.topBlock;
+                util.stackFrame.startedThreads = util.startHats('event_whenbroadcastreceived', {
+                    BROADCAST_OPTION: broadcastOption
+                }, null, {
+                    source: sourceSpriteName,
+                    thread: threadId
+                });
                 if (util.stackFrame.startedThreads.length === 0) {
                     // Nothing was started.
                     return;
